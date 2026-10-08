@@ -1,0 +1,6 @@
+{
+  "name": "OyunDiyarı - Gerçek Oyuncu Web Oyun Portalı",
+  "description": "PUBG Oyuncak Balon Savaşı, Km İle Yavaşça Hızlanan Turbo Otoban ve Çok Oyunculu Snake.io Arenası içeren gerçek oyuncu web oyun platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
