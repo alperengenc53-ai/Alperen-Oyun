@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { playSound } from '../../utils/audio';
 import { Trophy, RotateCcw, Volume2, VolumeX, Maximize2, Zap, Skull, Flame, Sparkles, ShoppingBag, Check, Play, Palette, Info } from 'lucide-react';
 import { UserProfile, SnakeSkin } from '../../types/game';
-import { updateGameScore, getRegisteredOpponents, buyShopItem, equipShopItem } from '../../utils/playerRegistry';
+import { updateGameScore, buyShopItem, equipShopItem } from '../../utils/playerRegistry';
 import { ScoreboardWidget } from '../ScoreboardWidget';
 import { SNAKE_SKINS } from '../../data/cosmeticsData';
+import { subscribePresence, setPresenceGame } from '../../utils/onlinePresence';
 
 interface SnakeIoGameProps {
   currentUser: UserProfile;
@@ -59,14 +60,15 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
   const [kills, setKills] = useState<number>(0);
   const [coinsAwarded, setCoinsAwarded] = useState<number>(0);
   const [rankInArena, setRankInArena] = useState<number>(1);
+  const [deathReason, setDeathReason] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showScoreboard, setShowScoreboard] = useState<boolean>(false);
   const [shopFeedback, setShopFeedback] = useState<string | null>(null);
 
-  const ARENA_WIDTH = 2200;
-  const ARENA_HEIGHT = 2200;
-  const VIEW_WIDTH = 800;
-  const VIEW_HEIGHT = 540;
+  const ARENA_WIDTH = 2400;
+  const ARENA_HEIGHT = 2400;
+  const VIEW_WIDTH = 1280;
+  const VIEW_HEIGHT = 720;
 
   const currentSkin = SNAKE_SKINS.find(
     (s) => s.id === currentUser.selectedSnakeSkin
@@ -81,11 +83,11 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
     body: [],
     angle: 0,
     targetAngle: 0,
-    length: 25,
-    speed: 3.8,
+    length: 22,
+    speed: 1.28,
     isBoosting: false,
     isDead: false,
-    score: 100,
+    score: 30,
     kills: 0,
     tag: currentUser.tag,
   });
@@ -101,12 +103,30 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
 
   const spawnFood = (count: number) => {
     for (let i = 0; i < count; i++) {
+      let x = 0;
+      let y = 0;
+      let val = 1; // 1 point per regular orb for steady, natural growth
+      let r = 4.0 + Math.random() * 2.5;
+
+      // 80% of food spawns in the central feast arena ("yemleri ortaya al")
+      if (Math.random() < 0.8) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 460;
+        x = ARENA_WIDTH / 2 + Math.cos(angle) * dist;
+        y = ARENA_HEIGHT / 2 + Math.sin(angle) * dist;
+        val = 2; // Central feast orbs give 2 points
+        r = 5.5 + Math.random() * 3.5;
+      } else {
+        x = Math.random() * (ARENA_WIDTH - 80) + 40;
+        y = Math.random() * (ARENA_HEIGHT - 80) + 40;
+      }
+
       foodRef.current.push({
-        x: Math.random() * (ARENA_WIDTH - 80) + 40,
-        y: Math.random() * (ARENA_HEIGHT - 80) + 40,
-        radius: 3 + Math.random() * 3,
+        x,
+        y,
+        radius: r,
         color: foodColors[Math.floor(Math.random() * foodColors.length)],
-        value: Math.floor(Math.random() * 4) + 2,
+        value: val,
       });
     }
   };
@@ -117,21 +137,33 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         foodRef.current.push({
           x: pt.x + (Math.random() - 0.5) * 16,
           y: pt.y + (Math.random() - 0.5) * 16,
-          radius: 5 + Math.random() * 4,
+          radius: 5 + Math.random() * 3,
           color,
-          value: 12,
+          value: 2,
         });
       }
     });
   };
 
+  const [onlineOpponents, setOnlineOpponents] = useState<any[]>([]);
+
+  useEffect(() => {
+    setPresenceGame('snake');
+    const unsub = subscribePresence((data) => {
+      const others = data.users.filter((u) => u.id !== currentUser.id);
+      setOnlineOpponents(others);
+    });
+    return unsub;
+  }, [currentUser.id]);
+
   const startMatch = useCallback(() => {
     setInMenu(false);
+    mousePosRef.current = { x: VIEW_WIDTH / 2 + 120, y: VIEW_HEIGHT / 2 };
     const startX = Math.random() * 900 + 600;
     const startY = Math.random() * 900 + 600;
 
     const pBody: Point[] = [];
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 20; i++) {
       pBody.push({ x: startX - i * 5, y: startY });
     }
 
@@ -144,24 +176,23 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
       body: pBody,
       angle: 0,
       targetAngle: 0,
-      length: 25,
-      speed: 3.8,
+      length: 20,
+      speed: 1.28, // Calibrated calm slither speed
       isBoosting: false,
       isDead: false,
-      score: 100,
+      score: 30,
       kills: 0,
       tag: currentUser.tag,
     };
 
-    // Real opponents
-    const realOpponents = getRegisteredOpponents(currentUser.id);
+    // Online real opponents
     const opponentColors = ['#ef4444', '#f59e0b', '#a855f7', '#06b6d4', '#ec4899', '#3b82f6'];
 
-    opponentsRef.current = realOpponents.map((p, idx) => {
+    opponentsRef.current = onlineOpponents.map((p, idx) => {
       const bx = Math.random() * (ARENA_WIDTH - 400) + 200;
       const by = Math.random() * (ARENA_HEIGHT - 400) + 200;
       const bBody: Point[] = [];
-      const initLen = 25 + Math.floor(Math.random() * 25);
+      const initLen = 20 + Math.floor(Math.random() * 10);
       for (let i = 0; i < initLen; i++) {
         bBody.push({ x: bx - i * 5, y: by });
       }
@@ -173,24 +204,24 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         angle: Math.random() * Math.PI * 2,
         targetAngle: Math.random() * Math.PI * 2,
         length: initLen,
-        speed: 3.5,
+        speed: 1.22,
         isBoosting: false,
         isDead: false,
-        score: initLen * 10,
+        score: initLen * 2,
         kills: 0,
-        tag: p.tag,
+        tag: p.tag || '[TR]',
       };
     });
 
     foodRef.current = [];
     spawnFood(350);
 
-    setScore(100);
+    setScore(30);
     setKills(0);
     setCoinsAwarded(0);
     setGameOver(false);
     setIsPlaying(true);
-  }, [currentUser.id, currentUser.username, currentUser.tag, currentSkin]);
+  }, [currentUser.id, currentUser.username, currentUser.tag, currentSkin, onlineOpponents]);
 
   // Handle skin buy / equip
   const handleSelectSkin = (skin: SnakeSkin) => {
@@ -235,20 +266,21 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         const head = p.body[0];
         if (!head) return;
 
-        // Keyboard arrow/wasd steering support
-        if (keysRef.current['KeyA'] || keysRef.current['ArrowLeft']) {
-          p.targetAngle = Math.PI;
-        } else if (keysRef.current['KeyD'] || keysRef.current['ArrowRight']) {
-          p.targetAngle = 0;
-        } else if (keysRef.current['KeyW'] || keysRef.current['ArrowUp']) {
-          p.targetAngle = -Math.PI / 2;
-        } else if (keysRef.current['KeyS'] || keysRef.current['ArrowDown']) {
-          p.targetAngle = Math.PI / 2;
+        // Keyboard arrow/wasd steering support (supports 8 directions and diagonals)
+        let keyX = 0;
+        let keyY = 0;
+        if (keysRef.current['KeyA'] || keysRef.current['ArrowLeft']) keyX -= 1;
+        if (keysRef.current['KeyD'] || keysRef.current['ArrowRight']) keyX += 1;
+        if (keysRef.current['KeyW'] || keysRef.current['ArrowUp']) keyY -= 1;
+        if (keysRef.current['KeyS'] || keysRef.current['ArrowDown']) keyY += 1;
+
+        if (keyX !== 0 || keyY !== 0) {
+          p.targetAngle = Math.atan2(keyY, keyX);
         } else {
           // Direct mouse angle from screen center
           const dx = mousePosRef.current.x - VIEW_WIDTH / 2;
           const dy = mousePosRef.current.y - VIEW_HEIGHT / 2;
-          if (Math.hypot(dx, dy) > 10) {
+          if (Math.hypot(dx, dy) > 8) {
             p.targetAngle = Math.atan2(dy, dx);
           }
         }
@@ -256,22 +288,22 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         let diff = p.targetAngle - p.angle;
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
-        p.angle += diff * 0.16;
+        p.angle += diff * 0.075; // Smooth, graceful, authentic snake steering
 
-        p.isBoosting = isMouseDownRef.current && p.score > 60;
-        const speed = p.isBoosting ? 6.2 : 3.8;
+        p.isBoosting = (isMouseDownRef.current || keysRef.current['Space']) && p.score > 20;
+        const speed = p.isBoosting ? 2.05 : 1.28; // Calibrated, calm, controllable slither speed
 
         if (p.isBoosting && Math.random() < 0.25) {
-          p.score = Math.max(50, p.score - 1);
+          p.score = Math.max(15, p.score - 1);
           setScore(p.score);
           const tail = p.body[p.body.length - 1];
           if (tail) {
             foodRef.current.push({
-              x: tail.x + (Math.random() - 0.5) * 8,
-              y: tail.y + (Math.random() - 0.5) * 8,
-              radius: 3.5,
+              x: tail.x + (Math.random() - 0.5) * 12,
+              y: tail.y + (Math.random() - 0.5) * 12,
+              radius: 4,
               color: p.color,
-              value: 2,
+              value: 1,
             });
           }
         }
@@ -281,12 +313,35 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
           y: head.y + Math.sin(p.angle) * speed,
         };
 
-        newHead.x = Math.max(20, Math.min(ARENA_WIDTH - 20, newHead.x));
-        newHead.y = Math.max(20, Math.min(ARENA_HEIGHT - 20, newHead.y));
+        // USER REQUIREMENT: "snike io da duvara çarpıncada ölelim"
+        if (
+          newHead.x <= 24 ||
+          newHead.x >= ARENA_WIDTH - 24 ||
+          newHead.y <= 24 ||
+          newHead.y >= ARENA_HEIGHT - 24
+        ) {
+          p.isDead = true;
+          if (soundEnabled) playSound.snakeDie();
+          spawnDeathOrbs(p.body, p.color);
+          setGameOver(true);
+          setIsPlaying(false);
+          setDeathReason('Kırmızı arena duvarına çarparak patladınız!');
+
+          const earned = Math.max(5, Math.floor(p.score / 5) + p.kills * 15);
+          setCoinsAwarded(earned);
+
+          const updated = updateGameScore('snake', p.score, {
+            kills: p.kills,
+            coinsEarned: earned,
+          });
+          if (updated) onProfileUpdated(updated);
+          return;
+        }
 
         p.body.unshift(newHead);
 
-        const targetLength = Math.floor(25 + p.score / 12);
+        // Balanced, authentic growth: snake grows steadily without exploding too quickly!
+        const targetLength = Math.floor(18 + p.score / 5.5);
         while (p.body.length > targetLength) {
           p.body.pop();
         }
@@ -314,29 +369,46 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
           y: head.y + Math.sin(opp.angle) * opp.speed,
         };
 
-        newHead.x = Math.max(20, Math.min(ARENA_WIDTH - 20, newHead.x));
-        newHead.y = Math.max(20, Math.min(ARENA_HEIGHT - 20, newHead.y));
+        // Opponents also die if they crash into the border wall!
+        if (
+          newHead.x <= 22 ||
+          newHead.x >= ARENA_WIDTH - 22 ||
+          newHead.y <= 22 ||
+          newHead.y >= ARENA_HEIGHT - 22
+        ) {
+          opp.isDead = true;
+          spawnDeathOrbs(opp.body, opp.color);
+          return;
+        }
 
         opp.body.unshift(newHead);
 
-        const targetLen = Math.floor(25 + opp.score / 12);
+        const targetLen = Math.floor(18 + opp.score / 5.5);
         while (opp.body.length > targetLen) {
           opp.body.pop();
         }
       });
 
-      // Eat Food pellets
+      // Eat Food pellets & magnetic vacuum attraction (instant rewarding growth!)
       const allSnakes = [p, ...opponentsRef.current].filter((s) => !s.isDead);
 
       foodRef.current = foodRef.current.filter((food) => {
         for (const snake of allSnakes) {
           const head = snake.body[0];
           if (!head) continue;
-          if (Math.hypot(head.x - food.x, head.y - food.y) < 22) {
-            snake.score += food.value;
+          const dist = Math.hypot(head.x - food.x, head.y - food.y);
+
+          // Magnetic vacuum when close (Food flies smoothly into snake's mouth):
+          if (dist < 70) {
+            food.x += (head.x - food.x) * 0.3;
+            food.y += (head.y - food.y) * 0.3;
+          }
+
+          if (dist < 30) {
+            snake.score += food.value; // Balanced, natural 1-2 points per pellet
             if (snake.id === 'player') {
               setScore(p.score);
-              if (soundEnabled && Math.random() < 0.2) playSound.snakeEat();
+              if (soundEnabled && Math.random() < 0.35) playSound.snakeEat();
             }
             return false;
           }
@@ -344,7 +416,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         return true;
       });
 
-      if (foodRef.current.length < 320) {
+      if (foodRef.current.length < 350) {
         spawnFood(60);
       }
 
@@ -362,10 +434,11 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
               spawnDeathOrbs(p.body, p.color);
               setGameOver(true);
               setIsPlaying(false);
+              setDeathReason('Başka bir yılanın gövdesine çarparak patladınız!');
 
               // USER REQUIREMENT:
               // "ölenene kadar topladığımız skora göre bir para versin"
-              const earned = Math.max(5, Math.floor(p.score / 25) + (p.kills * 15));
+              const earned = Math.max(5, Math.floor(p.score / 5) + (p.kills * 15));
               setCoinsAwarded(earned);
 
               const updated = updateGameScore('snake', p.score, {
@@ -392,7 +465,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
               opp.isDead = true;
               spawnDeathOrbs(opp.body, opp.color);
               p.kills += 1;
-              p.score += 250;
+              p.score += 40;
               setKills(p.kills);
               setScore(p.score);
               if (soundEnabled) playSound.victory();
@@ -437,6 +510,35 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
       ctx.lineWidth = 6;
       ctx.strokeRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
 
+      // Glowing Center Feast Zone ("yemleri ortaya al")
+      ctx.save();
+      const centerGrad = ctx.createRadialGradient(
+        ARENA_WIDTH / 2, ARENA_HEIGHT / 2, 50,
+        ARENA_WIDTH / 2, ARENA_HEIGHT / 2, 440
+      );
+      centerGrad.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+      centerGrad.addColorStop(0.7, 'rgba(56, 189, 248, 0.08)');
+      centerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = centerGrad;
+      ctx.beginPath();
+      ctx.arc(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, 440, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([12, 8]);
+      ctx.beginPath();
+      ctx.arc(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, 430, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Neon center label
+      ctx.fillStyle = 'rgba(52, 211, 153, 0.85)';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚡ MERKEZ ŞÖLEN ALANI • MEGA YEM BÖLGESİ ⚡', ARENA_WIDTH / 2, ARENA_HEIGHT / 2);
+      ctx.restore();
+
       // Food Pellets
       foodRef.current.forEach((f) => {
         if (
@@ -463,7 +565,8 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
       const renderSnake = (snake: Snake, isMainPlayer: boolean) => {
         if (snake.isDead || snake.body.length === 0) return;
 
-        const bodyRadius = Math.min(14, 8 + snake.score / 250);
+        // Dynamic thickness scaling: snake expands gracefully as it eats
+        const bodyRadius = Math.min(23, 10.5 + Math.sqrt(snake.score) * 0.28);
 
         // Body segments
         for (let i = snake.body.length - 1; i >= 0; i--) {
@@ -517,6 +620,21 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
           ctx.translate(head.x, head.y);
           ctx.rotate(snake.angle);
 
+          // Animated Cute Pink Flicking Tongue (Authentic Snake.io)
+          const tonguePhase = (Date.now() / 250) % 10;
+          if (tonguePhase < 3) {
+            const tongueLen = bodyRadius * (0.9 + tonguePhase * 0.25);
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(bodyRadius * 0.8, 0);
+            ctx.lineTo(bodyRadius * 0.8 + tongueLen, 0);
+            ctx.lineTo(bodyRadius * 0.8 + tongueLen + 4, -3);
+            ctx.moveTo(bodyRadius * 0.8 + tongueLen, 0);
+            ctx.lineTo(bodyRadius * 0.8 + tongueLen + 4, 3);
+            ctx.stroke();
+          }
+
           // Eyes
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
@@ -526,8 +644,15 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
 
           ctx.fillStyle = '#000000';
           ctx.beginPath();
-          ctx.arc(bodyRadius * 0.55, -bodyRadius * 0.45, bodyRadius * 0.18, 0, Math.PI * 2);
-          ctx.arc(bodyRadius * 0.55, bodyRadius * 0.45, bodyRadius * 0.18, 0, Math.PI * 2);
+          ctx.arc(bodyRadius * 0.55, -bodyRadius * 0.45, bodyRadius * 0.20, 0, Math.PI * 2);
+          ctx.arc(bodyRadius * 0.55, bodyRadius * 0.45, bodyRadius * 0.20, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Specular eye shine
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(bodyRadius * 0.60, -bodyRadius * 0.50, bodyRadius * 0.08, 0, Math.PI * 2);
+          ctx.arc(bodyRadius * 0.60, bodyRadius * 0.40, bodyRadius * 0.08, 0, Math.PI * 2);
           ctx.fill();
 
           // Head Accessories for Player
@@ -691,10 +816,10 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
 
         <div className="flex items-center gap-2">
           {/* Wallet */}
-          <div className="bg-amber-950/80 border border-amber-500/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-mono font-bold text-amber-300">
-            <span>🪙</span>
-            <span className="text-sm font-black text-amber-200">{(currentUser.coins ?? 150).toLocaleString()}</span>
-            <span className="text-[10px] text-amber-400 uppercase">Altın</span>
+          <div className="bg-emerald-950/80 border border-emerald-500/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-300">
+            <span>🐍</span>
+            <span className="text-sm font-black text-amber-200">{(currentUser.snakeCoins ?? 0).toLocaleString()}</span>
+            <span className="text-[10px] text-amber-400 uppercase">Snake Altını</span>
           </div>
 
           <button
@@ -712,6 +837,16 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
             <Trophy className="w-4 h-4" />
             <span>Skorboard</span>
           </button>
+
+          {onFullscreenRequest && (
+            <button
+              onClick={onFullscreenRequest}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
+              title="Ekranı Büyüt (Tam Ekran)"
+            >
+              <span>🗖 Büyüt</span>
+            </button>
+          )}
 
           {!inMenu && (
             <button
@@ -773,9 +908,9 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-mono text-amber-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                <span>Cüzdan:</span>
-                <strong className="text-amber-200">{(currentUser.coins ?? 150).toLocaleString()} 🪙</strong>
+              <div className="flex items-center gap-2 text-xs font-mono text-emerald-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                <span>Snake.io Cüzdanı:</span>
+                <strong className="text-amber-200">{(currentUser.snakeCoins ?? 0).toLocaleString()} 🪙</strong>
               </div>
             </div>
 
@@ -866,8 +1001,8 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
                       Ölene kadar kazandığınız altınlarla Kral Tacı, Cehennem Boynuzu, Galaksi ve Gökkuşağı desenleri açın!
                     </p>
                   </div>
-                  <span className="text-xs font-mono text-amber-300 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
-                    Bakiyeniz: <strong>{(currentUser.coins ?? 150).toLocaleString()} 🪙</strong>
+                  <span className="text-xs font-mono text-emerald-300 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+                    Snake Bakiyeniz: <strong>{(currentUser.snakeCoins ?? 0).toLocaleString()} 🪙</strong>
                   </span>
                 </div>
 
@@ -885,8 +1020,15 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
                             : 'border-slate-800 hover:border-slate-700'
                         }`}
                       >
+                        {s.imageUrl && (
+                          <div className="relative h-24 w-full rounded-xl overflow-hidden my-2 border border-slate-800 shadow">
+                            <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                          </div>
+                        )}
+
                         <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-slate-800 text-2xl flex items-center justify-center border border-slate-700 shadow-inner">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 text-xl flex items-center justify-center border border-slate-700 shadow-inner shrink-0">
                             {s.icon}
                           </div>
                           <div className="flex-1">
@@ -916,7 +1058,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
                                 ? 'bg-slate-800 text-slate-500 cursor-default'
                                 : isUnlocked
                                 ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black'
-                                : (currentUser.coins ?? 150) >= s.price
+                                : (currentUser.snakeCoins ?? 0) >= s.price
                                 ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
                                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                             }`}
@@ -973,12 +1115,12 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
           </div>
         ) : (
           /* CANVAS GAMEPLAY VIEW */
-          <div className="relative w-full h-full flex flex-col items-center">
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
             <canvas
               ref={canvasRef}
               width={VIEW_WIDTH}
               height={VIEW_HEIGHT}
-              className="rounded-lg shadow-2xl cursor-crosshair"
+              className="w-full h-auto max-h-[84vh] aspect-[16/9] object-cover rounded-2xl shadow-2xl cursor-crosshair border border-slate-800 block"
             />
 
             {/* In-Game HUD Overlays */}
@@ -1013,9 +1155,10 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
                 <div className="max-w-md w-full bg-slate-900 border-2 border-emerald-500/60 rounded-3xl p-6 shadow-2xl space-y-4">
                   <div className="text-5xl">☠️</div>
                   <h2 className="text-2xl font-black text-white">YILANINIZ PATLADI!</h2>
-                  <p className="text-xs text-slate-400">
-                    Başka bir yılanın gövdesine çarptınız! Ancak topladığınız skora göre altın kazandınız.
-                  </p>
+                  <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>{deathReason || 'Arena engeline çarptınız!'}</span>
+                  </div>
 
                   <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5 font-mono text-xs">
                     <div className="flex justify-between items-center">

@@ -40,37 +40,21 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             <span>Ana Sayfa</span>
           </button>
 
-          {/* PUBG */}
+          {/* 8 Ball Pool (Bilardo) */}
           <button
             onClick={() => {
-              onSelectGame('pubg');
-              setActiveTab('pubg');
+              onSelectGame('pool');
+              setActiveTab('pool');
             }}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              activeGame === 'pubg'
-                ? 'bg-amber-500 text-slate-950 shadow font-black'
-                : 'hover:bg-slate-300/80 text-slate-700'
-            }`}
-          >
-            <Crosshair className="w-3.5 h-3.5 text-amber-600" />
-            <span>Oyuncak Savaşı</span>
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-          </button>
-
-          {/* Paper Minecraft */}
-          <button
-            onClick={() => {
-              onSelectGame('minecraft');
-              setActiveTab('minecraft');
-            }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              activeGame === 'minecraft'
+              activeGame === 'pool'
                 ? 'bg-emerald-600 text-white shadow font-black'
                 : 'hover:bg-slate-300/80 text-slate-700'
             }`}
           >
-            <Pickaxe className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Paper Minecraft (Co-op)</span>
+            <span className="text-sm">🎱</span>
+            <span>8 Ball Pool (Bilardo)</span>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-800 px-1 rounded font-mono font-bold">1v1 VS</span>
           </button>
 
           {/* Araba Oyunu */}
@@ -103,6 +87,23 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           >
             <Flame className="w-3.5 h-3.5 text-emerald-600" />
             <span>Snake.io (Yılan)</span>
+          </button>
+
+          {/* Cyber Horizon 3D */}
+          <button
+            onClick={() => {
+              onSelectGame('cyber3d');
+              setActiveTab('cyber3d');
+            }}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              activeGame === 'cyber3d'
+                ? 'bg-cyan-600 text-white shadow font-black'
+                : 'hover:bg-slate-300/80 text-slate-700'
+            }`}
+          >
+            <span className="text-sm">🚀</span>
+            <span>Cyber Horizon 3D</span>
+            <span className="text-[10px] bg-cyan-500/20 text-cyan-800 px-1 rounded font-mono font-bold">3D YENİ</span>
           </button>
 
           <div className="h-4 w-px bg-slate-300 mx-1" />

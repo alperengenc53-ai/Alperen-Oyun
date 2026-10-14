@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { GameId, UserProfile } from '../types/game';
 import { GAMES_DATA } from '../data/gamesData';
-import { ExternalLink, Play, Sparkles, MessageSquare, Send } from 'lucide-react';
+import { ExternalLink, Play, Sparkles, MessageSquare, Send, Swords } from 'lucide-react';
 import {
-  getAllRegisteredPlayers,
   getRealChatMessages,
   addRealChatMessage,
   onPlayersSync,
   RealChatMsg,
 } from '../utils/playerRegistry';
+import { PresenceData, sendPoolChallenge } from '../utils/onlinePresence';
 import { playSound } from '../utils/audio';
 
 interface LeftSidebarProps {
   activeGame: GameId | null;
   onSelectGame: (gameId: GameId) => void;
-  onOpenStandalone: (gameId: GameId) => void;
+  onOpenStandalone?: (gameId: GameId) => void;
+  onOpenFullscreen?: (gameId: GameId) => void;
   currentUser: UserProfile;
+  presenceData?: PresenceData;
   onOpenAccountModal: () => void;
 }
 
@@ -23,13 +25,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   activeGame,
   onSelectGame,
   onOpenStandalone,
+  onOpenFullscreen,
   currentUser,
+  presenceData,
   onOpenAccountModal,
 }) => {
   const [chatMessages, setChatMessages] = useState<RealChatMsg[]>(getRealChatMessages());
   const [newMsg, setNewMsg] = useState('');
-
-  const registeredPlayers = getAllRegisteredPlayers();
+  const [challengeSentId, setChallengeSentId] = useState<string | null>(null);
 
   const reloadChat = () => {
     setChatMessages(getRealChatMessages());
@@ -38,7 +41,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   useEffect(() => {
     reloadChat();
     const unsub = onPlayersSync(reloadChat);
-    return unsub;
+    const interval = setInterval(reloadChat, 15000); // Check for hourly reset turnover
+    return () => {
+      unsub();
+      clearInterval(interval);
+    };
   }, []);
 
   const handleSendChat = (e: React.FormEvent) => {
@@ -50,7 +57,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     playSound.click();
   };
 
+  const handleChallenge = async (targetUserId: string, targetName: string) => {
+    setChallengeSentId(targetUserId);
+    playSound.click();
+    await sendPoolChallenge(targetUserId);
+    onSelectGame('pool');
+    setTimeout(() => setChallengeSentId(null), 3000);
+  };
+
   const games = Object.values(GAMES_DATA);
+  const onlineUsers = presenceData?.users || [];
+  const counts = presenceData?.counts || { snake: 0, pool: 0, traffic: 0, lobby: 1 };
 
   return (
     <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col gap-4">
@@ -88,17 +105,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </button>
       </div>
 
-      {/* Main 3 Games Section */}
+      {/* Main Games Section with Real Dynamic Online Count */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg flex flex-col gap-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-400" />
             <h2 className="text-sm font-black text-white tracking-wide">
-              ÇEVRİMİÇİ OYUNLAR ({games.length})
+              OYUNLAR ({games.length})
             </h2>
           </div>
-          <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-            GERÇEK OYUNCULAR
+          <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            {presenceData?.total ?? 1} ÇEVRİMİÇİ
           </span>
         </div>
 
@@ -106,15 +124,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="flex flex-col gap-3">
           {games.map((g) => {
             const isSelected = activeGame === g.id;
+            const onlineInThisGame = counts[g.id] ?? 0;
 
             const myScore =
-              g.id === 'pubg'
-                ? currentUser.pubgHighscore
-                : g.id === 'traffic'
+              g.id === 'traffic'
                 ? currentUser.trafficHighscore
                 : g.id === 'snake'
                 ? currentUser.snakeHighscore
-                : (currentUser as any).minecraftScore || currentUser.totalScore || 0;
+                : (currentUser as any).poolHighscore || currentUser.totalScore || 0;
 
             return (
               <div
@@ -146,11 +163,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   </span>
                 </div>
 
-                {/* Score info */}
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
-                  <span className="text-emerald-400 font-bold">
-                    {registeredPlayers.length} Kayıtlı Oyuncu
-                  </span>
+                {/* Real-time Online Counter for THIS game & Player Highscore */}
+                <div className="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-slate-800/60">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        onlineInThisGame > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'
+                      }`}
+                    />
+                    <span
+                      className={
+                        onlineInThisGame > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500 font-medium'
+                      }
+                    >
+                      Online: {onlineInThisGame}
+                    </span>
+                  </div>
                   <span className="text-amber-400">
                     Skorun: <strong>{myScore} P</strong>
                   </span>
@@ -170,19 +198,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     }`}
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>{isSelected ? 'Oynanıyor' : 'Sitede Oyna'}</span>
+                    <span>{isSelected ? 'Oynanıyor' : 'Oyna'}</span>
                   </button>
 
                   <button
                     onClick={() => {
-                      onOpenStandalone(g.id);
+                      if (onOpenFullscreen) {
+                        onOpenFullscreen(g.id);
+                      } else {
+                        onSelectGame(g.id);
+                      }
                       playSound.click();
                     }}
-                    title="Yeni bağımsız sayfada başlat"
+                    title="Oyunu tam ekran olarak büyüt ve başlat"
                     className="px-2.5 py-2 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/30 transition flex items-center justify-center gap-1 cursor-pointer"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Yeni Sitede Aç</span>
+                    <span>🗖 Tam Ekran</span>
                   </button>
                 </div>
               </div>
@@ -191,41 +222,80 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </div>
       </div>
 
-      {/* Real Registered Players List */}
+      {/* Dynamic Real-time Online Players List with Instant 1v1 VS Challenge */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg flex flex-col gap-2">
         <div className="flex items-center justify-between pb-1 border-b border-slate-800">
           <span className="text-xs font-black text-white tracking-wide uppercase flex items-center gap-1.5">
-            👥 Kayıtlı Oyuncular ({registeredPlayers.length})
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            ÇEVRİMİÇİ OYUNCULAR ({onlineUsers.length || 1})
           </span>
-          <button
-            onClick={onOpenAccountModal}
-            className="text-[10px] text-amber-400 hover:underline font-bold"
-          >
-            + İsim Yaz
-          </button>
+          <span className="text-[10px] text-emerald-400 font-mono font-bold">
+            Anlık Canlı
+          </span>
         </div>
 
-        <div className="space-y-1 text-xs font-mono">
-          {registeredPlayers.length === 0 ? (
-            <div className="text-[11px] text-slate-500 py-1">
-              Henüz kimse kayıt olmadı.
+        <div className="space-y-1.5 text-xs font-mono max-h-52 overflow-y-auto pr-1">
+          {onlineUsers.length === 0 ? (
+            <div className="p-1.5 rounded flex items-center justify-between bg-emerald-500/10 text-emerald-300">
+              <div className="flex items-center gap-1.5">
+                <span>{currentUser.avatar}</span>
+                <span className="font-bold">{currentUser.tag} {currentUser.username}</span>
+                <span className="text-[9px] bg-emerald-500 text-slate-950 font-black px-1 rounded">SEN</span>
+              </div>
+              <span className="text-[10px] text-slate-400">Aktif</span>
             </div>
           ) : (
-            registeredPlayers.map((p) => (
-              <div
-                key={p.id}
-                className={`p-1.5 rounded flex items-center justify-between ${
-                  p.id === currentUser.id ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>{p.avatar}</span>
-                  <span>{p.tag} {p.username}</span>
-                  {p.id === currentUser.id && <span className="text-[9px] bg-amber-500 text-slate-950 px-1 rounded">SEN</span>}
+            onlineUsers.map((u) => {
+              const isMe = u.id === currentUser.id;
+              const gameLabel =
+                u.game === 'snake'
+                  ? '🐍 Snake'
+                  : u.game === 'pool'
+                  ? '🎱 Bilardo'
+                  : u.game === 'traffic'
+                  ? '🏎️ Otoban'
+                  : '🏠 Lobi';
+
+              return (
+                <div
+                  key={u.id}
+                  className={`p-2 rounded-lg flex items-center justify-between transition ${
+                    isMe
+                      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold'
+                      : 'bg-slate-950 border border-slate-800/80 text-slate-300 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm">{u.avatar || '👑'}</span>
+                    <div className="truncate">
+                      <span className="text-slate-400 text-[10px] mr-1">{u.tag}</span>
+                      <span className="text-white font-bold">{u.username}</span>
+                      {isMe && (
+                        <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1 rounded ml-1">
+                          SEN
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-sans">
+                      {gameLabel}
+                    </span>
+                    {!isMe && (
+                      <button
+                        onClick={() => handleChallenge(u.id, u.username)}
+                        title={`${u.username} ile 8 Ball Pool VS maçı başlat`}
+                        className="px-2 py-0.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black rounded transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Swords className="w-3 h-3" />
+                        <span>{challengeSentId === u.id ? 'Davet...' : 'VS At'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className="text-[10px] text-slate-400">{p.totalScore}P</span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -236,10 +306,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-amber-400" />
             <h3 className="text-xs font-black text-white tracking-wide uppercase">
-              Gerçek Oyuncu Sohbeti
+              Canlı Sohbet
             </h3>
           </div>
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+            ⏱️ Saat Başı Sıfırlanır
+          </span>
         </div>
 
         <div className="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1 text-xs font-sans">

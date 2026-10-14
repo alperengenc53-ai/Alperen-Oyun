@@ -30,15 +30,15 @@ export const Footer: React.FC<FooterProps> = ({ onSelectGame }) => {
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Türkiye’nin en eğlenceli çevrimiçi çok oyunculu web oyun platformu. PUBG Rekabetçi Battle Royale, gittikçe hızlanan Turbo Otoban Araba Yarışı ve kafa çarpınca ölen çok oyunculu Snake.io oyunlarını anında ücretsiz oynayın.
+              Türkiye’nin en eğlenceli çevrimiçi çok oyunculu web oyun platformu. 8 Ball Pool 1v1 Bilardo, PUBG Rekabetçi Oyuncak Savaşı, Turbo Otoban Araba Yarışı ve duvara çarpınca patlayan Snake.io oyunlarını anında ücretsiz oynayın.
             </p>
-            <div className="flex items-center gap-3 text-xs text-emerald-400 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Bütün Sunucular Aktif (19.400+ Çevrimiçi)</span>
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Canlı Sunucular Aktif • Anlık Çok Oyunculu</span>
             </div>
           </div>
 
-          {/* Col 2: 3 Ana Oyun */}
+          {/* Col 2: Platform Oyunları */}
           <div className="space-y-3">
             <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
               <Award className="w-4 h-4 text-amber-400" />
@@ -47,20 +47,11 @@ export const Footer: React.FC<FooterProps> = ({ onSelectGame }) => {
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => onSelectGame('pubg')}
-                  className="hover:text-amber-400 transition flex items-center gap-1.5 text-left cursor-pointer"
+                  onClick={() => onSelectGame('pool')}
+                  className="hover:text-emerald-400 transition flex items-center gap-1.5 text-left cursor-pointer"
                 >
-                  <span>🎯</span>
-                  <span><strong>PUBG: Rekabetçi</strong> - Erangel Lobi & Canlı Skor</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onSelectGame('traffic')}
-                  className="hover:text-sky-400 transition flex items-center gap-1.5 text-left cursor-pointer"
-                >
-                  <span>🏎️</span>
-                  <span><strong>Turbo Otoban: Araba</strong> - Hızlanan Trafik Yarışı</span>
+                  <span>🎱</span>
+                  <span><strong>8 Ball Pool: Bilardo</strong> - Arkadaşla & Çevrimiçi 1v1 VS</span>
                 </button>
               </li>
               <li>
@@ -69,7 +60,16 @@ export const Footer: React.FC<FooterProps> = ({ onSelectGame }) => {
                   className="hover:text-emerald-400 transition flex items-center gap-1.5 text-left cursor-pointer"
                 >
                   <span>🐍</span>
-                  <span><strong>Snake.io</strong> - Çok Oyunculu Yılan Savaşı</span>
+                  <span><strong>Snake.io: Yılan Savaşı</strong> - Duvara Çarpınca Patlayan Arena</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onSelectGame('traffic')}
+                  className="hover:text-sky-400 transition flex items-center gap-1.5 text-left cursor-pointer"
+                >
+                  <span>🏎️</span>
+                  <span><strong>Turbo Otoban: Araba</strong> - Paralarla Garaj & Modifiye</span>
                 </button>
               </li>
             </ul>
@@ -83,7 +83,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectGame }) => {
             </h4>
             <ul className="space-y-2 text-xs">
               <li className="hover:text-white transition cursor-pointer">
-                • PUBG: Silah seçimi ve kask zırhı ile hayatta kalma
+                • 8 Ball Pool: Hassas hız çubuğuyla falso ve bant atışları
               </li>
               <li className="hover:text-white transition cursor-pointer">
                 • Turbo Otoban: Yakın makas atarak +150 kombo puanı

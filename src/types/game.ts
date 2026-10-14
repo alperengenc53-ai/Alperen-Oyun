@@ -1,15 +1,4 @@
-export type GameId = 'pubg' | 'minecraft' | 'traffic' | 'snake';
-
-export interface PubgCostume {
-  id: string;
-  name: string;
-  price: number;
-  icon: string;
-  description: string;
-  bodyColor: string;
-  headgearColor: string;
-  accessory: 'beret' | 'bear_ears' | 'robot_antenna' | 'ninja_band' | 'duck_beak' | 'hero_cape';
-}
+export type GameId = 'pool' | 'traffic' | 'snake' | 'cyber3d';
 
 export interface TrafficVehicle {
   id: string;
@@ -22,6 +11,7 @@ export interface TrafficVehicle {
   type: 'sedan' | 'police' | 'taxi' | 'cyberpunk' | 'f1' | 'bat' | 'gold_super';
   icon: string;
   description: string;
+  imageUrl?: string;
 }
 
 export interface TrafficSkin {
@@ -30,6 +20,7 @@ export interface TrafficSkin {
   price: number;
   pattern: 'plain' | 'stripes' | 'flames' | 'carbon' | 'camo';
   description: string;
+  imageUrl?: string;
 }
 
 export interface SnakeSkin {
@@ -42,6 +33,43 @@ export interface SnakeSkin {
   accessory?: 'none' | 'crown' | 'sunglasses' | 'horns' | 'party_hat';
   icon: string;
   description: string;
+  imageUrl?: string;
+}
+
+export interface PoolCue {
+  id: string;
+  name: string;
+  price: number;
+  power: number;
+  aimLength: number;
+  color: string;
+  accentColor: string;
+  icon: string;
+  description: string;
+  imageUrl?: string;
+}
+
+export interface PoolTableSkin {
+  id: string;
+  name: string;
+  price: number;
+  feltColor: string;
+  woodColor: string;
+  cushionColor: string;
+  icon: string;
+  description: string;
+  imageUrl?: string;
+}
+
+export interface CyberShipSkin {
+  id: string;
+  name: string;
+  price: number;
+  color: string;
+  glowColor: string;
+  engineColor: string;
+  icon: string;
+  description: string;
 }
 
 export interface UserProfile {
@@ -50,23 +78,32 @@ export interface UserProfile {
   avatar: string;
   tag: string;
   level: number;
-  totalScore: number;
-  coins: number; // Gold coins earned in matches & highway
-  unlockedPubgCostumes: string[];
-  selectedPubgCostume: string;
+  totalScore: number; // Toplam profil skoru
+  coins: number; // Toplam genel altın
+  trafficCoins: number; // Turbo Otoban cüzdanı
+  snakeCoins: number;   // Snake.io cüzdanı
+  poolCoins: number;    // 8 Ball Pool cüzdanı
+  cyberCoins?: number;  // Cyber Runner 3D cüzdanı
   unlockedTrafficCars: string[];
   selectedTrafficCar: string;
   unlockedTrafficSkins: string[];
   selectedTrafficSkin: string;
   unlockedSnakeSkins: string[];
   selectedSnakeSkin: string;
-  pubgKills: number;
-  pubgWins: number;
-  pubgHighscore: number;
+  unlockedPoolCues?: string[];
+  selectedPoolCue?: string;
+  unlockedPoolTables?: string[];
+  selectedPoolTable?: string;
+  unlockedCyberSkins?: string[];
+  selectedCyberSkin?: string;
   trafficHighscore: number;
   trafficDistance: number;
   snakeHighscore: number;
   snakeKills: number;
+  poolWins?: number;
+  poolHighscore?: number;
+  cyberHighscore?: number;
+  password?: string;
   joinedAt: string;
 }
 

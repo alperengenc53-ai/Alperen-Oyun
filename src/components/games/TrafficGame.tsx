@@ -51,11 +51,12 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
   const [showScoreboard, setShowScoreboard] = useState<boolean>(false);
   const [shopFeedback, setShopFeedback] = useState<string | null>(null);
 
-  const CANVAS_WIDTH = 560;
-  const CANVAS_HEIGHT = 680;
-  const LANE_WIDTH = 95;
-  const ROAD_LEFT = 90;
+  const CANVAS_WIDTH = 960;
+  const CANVAS_HEIGHT = 580;
+  const ROAD_WIDTH = 600;
+  const ROAD_LEFT = 180;
   const NUM_LANES = 4;
+  const LANE_WIDTH = ROAD_WIDTH / NUM_LANES; // 150px per lane
 
   const currentVehicle = TRAFFIC_VEHICLES.find(
     (v) => v.id === currentUser.selectedTrafficCar
@@ -66,10 +67,10 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
   ) || TRAFFIC_SKINS[0];
 
   const playerRef = useRef({
-    x: ROAD_LEFT + LANE_WIDTH * 1.5,
+    x: ROAD_LEFT + LANE_WIDTH * 1.5 - 24,
     y: CANVAS_HEIGHT - 120,
-    width: 44,
-    height: 78,
+    width: 48,
+    height: 84,
   });
 
   const keysRef = useRef<{ [code: string]: boolean }>({});
@@ -81,19 +82,30 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
   const startGame = useCallback(() => {
     setInMenu(false);
     playerRef.current = {
-      x: ROAD_LEFT + LANE_WIDTH * 1.5,
+      x: ROAD_LEFT + LANE_WIDTH * 1.5 - 24,
       y: CANVAS_HEIGHT - 120,
-      width: 44,
-      height: 78,
+      width: 48,
+      height: 84,
     };
-    trafficCarsRef.current = [];
-    coinsRef.current = [];
+    // Pre-populate traffic cars ahead so the road is filled from the start!
+    trafficCarsRef.current = [
+      { id: 1, lane: 0, x: ROAD_LEFT + 0 * LANE_WIDTH + (LANE_WIDTH - 46) / 2, y: 320, speed: 3.4, color: '#3b82f6', type: 'sedan', width: 46, height: 80 },
+      { id: 2, lane: 2, x: ROAD_LEFT + 2 * LANE_WIDTH + (LANE_WIDTH - 46) / 2, y: 210, speed: 3.8, color: '#eab308', type: 'sedan', width: 46, height: 80 },
+      { id: 3, lane: 1, x: ROAD_LEFT + 1 * LANE_WIDTH + (LANE_WIDTH - 52) / 2, y: 80, speed: 2.8, color: '#a855f7', type: 'truck', width: 52, height: 110 },
+      { id: 4, lane: 3, x: ROAD_LEFT + 3 * LANE_WIDTH + (LANE_WIDTH - 46) / 2, y: -50, speed: 4.0, color: '#10b981', type: 'sedan', width: 46, height: 80 },
+      { id: 5, lane: 0, x: ROAD_LEFT + 0 * LANE_WIDTH + (LANE_WIDTH - 46) / 2, y: -190, speed: 3.2, color: '#ef4444', type: 'sedan', width: 46, height: 80 },
+    ];
+    coinsRef.current = [
+      { x: ROAD_LEFT + 1 * LANE_WIDTH + (LANE_WIDTH) / 2, y: 150, collected: false },
+      { x: ROAD_LEFT + 3 * LANE_WIDTH + (LANE_WIDTH) / 2, y: 10, collected: false },
+      { x: ROAD_LEFT + 2 * LANE_WIDTH + (LANE_WIDTH) / 2, y: -120, collected: false },
+    ];
     roadOffsetRef.current = 0;
     matchCoinsRef.current = 0;
     setMatchCoins(0);
     setScore(0);
     setDistance(0);
-    setSpeedKmh(65);
+    setSpeedKmh(110);
     setCombo(1);
     setGameOver(false);
     setIsPlaying(true);
@@ -168,8 +180,9 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
     const loop = () => {
       const p = playerRef.current;
 
-      // Steering with A / D or Left / Right Arrows
-      const steerSpeed = 6.0;
+      // User request: "w basarak gitmememiz lazım sadece a d tuşlarıyla sağa sola gitmemiz lazım ve önümüzde araba olması lazım"
+      // Steering with A / D or Left / Right Arrows (Ultra responsive)
+      const steerSpeed = 8.0;
       if (keysRef.current['ArrowLeft'] || keysRef.current['KeyA']) {
         p.x -= steerSpeed;
       }
@@ -181,51 +194,54 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
       const maxX = ROAD_LEFT + NUM_LANES * LANE_WIDTH - p.width - 6;
       p.x = Math.max(minX, Math.min(maxX, p.x));
 
-      // USER REQUIREMENT:
-      // "w tusuna basınca hızlanmasın km arttıkça yavas yavas hızlansın"
-      // Starts gently at 60 km/h and slowly increases as kilometers pass!
+      // Automatic Forward Cruising Speed (No W needed!)
       const kmTraveled = currentDist / 1000;
-      const currentSpeedFactor = 5.5 + Math.min(7.0, kmTraveled * 0.7);
-      const kmh = Math.round(currentSpeedFactor * 12);
+      const isBraking = keysRef.current['ArrowDown'] || keysRef.current['KeyS'];
+      let currentSpeedFactor = 8.8 + Math.min(4.0, kmTraveled * 0.4);
+      if (isBraking) {
+        currentSpeedFactor = Math.max(5.0, currentSpeedFactor * 0.68); // Optional slight brake tap
+      }
+
+      const kmh = Math.round(currentSpeedFactor * 13);
       setSpeedKmh(kmh);
 
       // Distance and road scrolling
-      currentDist += currentSpeedFactor * 0.35;
-      currentScore += Math.round(currentSpeedFactor * 0.12);
+      currentDist += currentSpeedFactor * 0.38;
+      currentScore += Math.round(currentSpeedFactor * 0.22);
       roadOffsetRef.current = (roadOffsetRef.current + currentSpeedFactor) % 80;
 
       setDistance(Math.floor(currentDist));
       setScore(currentScore);
 
-      // Spawn traffic cars
+      // Spawn traffic cars CONTINUOUSLY ahead on road so there are always cars to dodge!
       const now = Date.now();
-      const spawnInterval = Math.max(1200, 2000 - kmTraveled * 150);
-      if (now - lastSpawn > spawnInterval && trafficCarsRef.current.length < 4) {
+      const spawnInterval = Math.max(450, 750 - kmTraveled * 60);
+      if (now - lastSpawn > spawnInterval && trafficCarsRef.current.length < 7) {
         lastSpawn = now;
 
         const lane = Math.floor(Math.random() * NUM_LANES);
-        const laneX = ROAD_LEFT + lane * LANE_WIDTH + (LANE_WIDTH - 44) / 2;
+        const laneX = ROAD_LEFT + lane * LANE_WIDTH + (LANE_WIDTH - 48) / 2;
 
-        const laneOccupied = trafficCarsRef.current.some((tc) => tc.lane === lane && tc.y < 220);
+        const laneOccupied = trafficCarsRef.current.some((tc) => tc.lane === lane && tc.y < 30);
         if (!laneOccupied) {
-          const isTruck = Math.random() < 0.2;
+          const isTruck = Math.random() < 0.25;
           trafficCarsRef.current.push({
             id: Date.now() + Math.random(),
             x: laneX,
-            y: -130,
+            y: -120,
             lane,
-            speed: 2.5 + Math.random() * 1.5,
+            speed: 3.0 + Math.random() * 2.2, // slower than player so player continuously catches up and weaves!
             color: carColors[Math.floor(Math.random() * carColors.length)],
             type: isTruck ? 'truck' : 'sedan',
-            width: isTruck ? 46 : 42,
-            height: isTruck ? 100 : 74,
+            width: isTruck ? 52 : 46,
+            height: isTruck ? 110 : 80,
           });
 
           // Spawn road gold coins frequently!
-          if (Math.random() < 0.45) {
+          if (Math.random() < 0.6) {
             coinsRef.current.push({
-              x: laneX + 21,
-              y: -80,
+              x: laneX + 23,
+              y: -70,
               collected: false,
             });
           }
@@ -287,40 +303,121 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
       });
       coinsRef.current = coinsRef.current.filter((c) => c.y < CANVAS_HEIGHT + 50 && !c.collected);
 
-      // --- RENDER HIGHWAY ---
-      ctx.fillStyle = '#1e293b';
+      // --- RENDER ULTRA-REALISTIC HIGHWAY & ASPHALT ---
+      // Outer grass / gravel terrain
+      ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Asphalt
-      ctx.fillStyle = '#0f172a';
+      // Gravel road shoulders with texture
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(ROAD_LEFT - 18, 0, 18, CANVAS_HEIGHT);
+      ctx.fillRect(ROAD_LEFT + NUM_LANES * LANE_WIDTH, 0, 18, CANVAS_HEIGHT);
+
+      // Steel corrugated crash barriers (W-Beam guardrails) on both shoulders
+      for (let y = -20; y < CANVAS_HEIGHT + 40; y += 32) {
+        const postY = (y + roadOffsetRef.current) % (CANVAS_HEIGHT + 32);
+        // Left post & reflector
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(ROAD_LEFT - 14, postY, 6, 12);
+        ctx.fillStyle = '#ef4444'; // Red hazard reflector
+        ctx.fillRect(ROAD_LEFT - 14, postY + 4, 3, 4);
+
+        // Right post & reflector
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(ROAD_LEFT + NUM_LANES * LANE_WIDTH + 8, postY, 6, 12);
+        ctx.fillStyle = '#facc15'; // Amber hazard reflector
+        ctx.fillRect(ROAD_LEFT + NUM_LANES * LANE_WIDTH + 11, postY + 4, 3, 4);
+      }
+
+      // Continuous steel barrier rails
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(ROAD_LEFT - 11, 0);
+      ctx.lineTo(ROAD_LEFT - 11, CANVAS_HEIGHT);
+      ctx.moveTo(ROAD_LEFT + NUM_LANES * LANE_WIDTH + 11, 0);
+      ctx.lineTo(ROAD_LEFT + NUM_LANES * LANE_WIDTH + 11, CANVAS_HEIGHT);
+      ctx.stroke();
+
+      // Premium Dark Asphalt Roadbed
+      const roadGrad = ctx.createLinearGradient(ROAD_LEFT, 0, ROAD_LEFT + NUM_LANES * LANE_WIDTH, 0);
+      roadGrad.addColorStop(0, '#0f172a');
+      roadGrad.addColorStop(0.5, '#1e293b');
+      roadGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = roadGrad;
       ctx.fillRect(ROAD_LEFT, 0, NUM_LANES * LANE_WIDTH, CANVAS_HEIGHT);
 
-      // White borders
-      ctx.strokeStyle = '#f8fafc';
+      // Asphalt grain / motion streaks
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+      for (let s = 0; s < 18; s++) {
+        const sx = ROAD_LEFT + ((s * 47) % (NUM_LANES * LANE_WIDTH - 20));
+        const sy = (s * 53 + roadOffsetRef.current * 4) % CANVAS_HEIGHT;
+        ctx.fillRect(sx, sy, 3, 24);
+      }
+
+      // Solid White Road Edge Lines (Reflective highway margins)
+      ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 4;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+      ctx.shadowBlur = 6;
       ctx.beginPath();
       ctx.moveTo(ROAD_LEFT, 0);
       ctx.lineTo(ROAD_LEFT, CANVAS_HEIGHT);
       ctx.moveTo(ROAD_LEFT + NUM_LANES * LANE_WIDTH, 0);
       ctx.lineTo(ROAD_LEFT + NUM_LANES * LANE_WIDTH, CANVAS_HEIGHT);
       ctx.stroke();
+      ctx.shadowBlur = 0;
 
-      // Dashed lane lines
-      ctx.strokeStyle = '#e2e8f0';
+      // Dashed lane divider lines with glittering Cat-Eye studs
+      ctx.strokeStyle = '#f8fafc';
       ctx.lineWidth = 3;
-      ctx.setLineDash([30, 30]);
+      ctx.setLineDash([32, 28]);
       ctx.lineDashOffset = -roadOffsetRef.current;
 
       for (let i = 1; i < NUM_LANES; i++) {
+        const laneLineX = ROAD_LEFT + i * LANE_WIDTH;
         ctx.beginPath();
-        ctx.moveTo(ROAD_LEFT + i * LANE_WIDTH, 0);
-        ctx.lineTo(ROAD_LEFT + i * LANE_WIDTH, CANVAS_HEIGHT);
+        ctx.moveTo(laneLineX, 0);
+        ctx.lineTo(laneLineX, CANVAS_HEIGHT);
         ctx.stroke();
       }
       ctx.setLineDash([]);
 
-      // Draw Coins (Glowing gold coins)
+      // Draw Cat-Eye Reflectors along lanes
+      for (let i = 1; i < NUM_LANES; i++) {
+        const laneLineX = ROAD_LEFT + i * LANE_WIDTH;
+        for (let y = 0; y < CANVAS_HEIGHT; y += 60) {
+          const catY = (y + roadOffsetRef.current) % CANVAS_HEIGHT;
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(laneLineX, catY, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Overhead Highway Direction Signboard passing periodically
+      const gantryY = (currentDist * 2) % 4000 - 200;
+      if (gantryY > -100 && gantryY < CANVAS_HEIGHT + 100) {
+        ctx.fillStyle = '#065f46'; // Official Green Highway Sign
+        ctx.fillRect(ROAD_LEFT - 6, gantryY, NUM_LANES * LANE_WIDTH + 12, 44);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ROAD_LEFT - 4, gantryY + 2, NUM_LANES * LANE_WIDTH + 8, 40);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🛣️ E-5 / TEM OTOYOLU • ANKARA / İSTANBUL', ROAD_LEFT + (NUM_LANES * LANE_WIDTH) / 2, gantryY + 20);
+        ctx.font = 'bold 9px monospace';
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText('⚡ HIZ LİMİTİ 130 KM/S • SOL ŞERİDİ BOŞ BIRAK', ROAD_LEFT + (NUM_LANES * LANE_WIDTH) / 2, gantryY + 34);
+      }
+
+      // Draw Coins (Glowing animated 3D coins)
       coinsRef.current.forEach((coin) => {
+        ctx.save();
+        ctx.shadowColor = '#facc15';
+        ctx.shadowBlur = 10;
         ctx.fillStyle = '#facc15';
         ctx.beginPath();
         ctx.arc(coin.x, coin.y, 11, 0, Math.PI * 2);
@@ -328,48 +425,126 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
         ctx.strokeStyle = '#ca8a04';
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#78350f';
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('$', coin.x, coin.y + 4);
+        ctx.restore();
       });
 
-      // Draw Other Traffic Cars
+      // Draw Other Traffic Cars (Realistic 3D vehicles with glass & lights)
       trafficCarsRef.current.forEach((tc) => {
         ctx.save();
         ctx.translate(tc.x, tc.y);
 
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.fillRect(2, 4, tc.width, tc.height);
+        // Realistic Underbody Soft Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(tc.width / 2, tc.height / 2 + 4, tc.width * 0.6, tc.height * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3D Metallic Car Body Gradient
+        const carBodyGrad = ctx.createLinearGradient(0, 0, tc.width, 0);
+        carBodyGrad.addColorStop(0, tc.color);
+        carBodyGrad.addColorStop(0.35, '#ffffff33');
+        carBodyGrad.addColorStop(0.65, tc.color);
+        carBodyGrad.addColorStop(1, '#00000044');
 
         ctx.fillStyle = tc.color;
         ctx.beginPath();
-        ctx.roundRect(0, 0, tc.width, tc.height, 8);
+        ctx.roundRect(0, 0, tc.width, tc.height, tc.type === 'truck' ? 4 : 8);
         ctx.fill();
 
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(4, 16, tc.width - 8, 14);
-        ctx.fillRect(4, tc.height - 24, tc.width - 8, 12);
+        ctx.fillStyle = carBodyGrad;
+        ctx.fill();
 
+        // Tinted Glass Windshield & Rear Window with Reflection
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(4, 15, tc.width - 8, 14); // Front windshield
+        ctx.fillRect(4, tc.height - 22, tc.width - 8, 11); // Rear glass
+        // Glass Reflection Glare
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath();
+        ctx.moveTo(6, 17);
+        ctx.lineTo(tc.width - 12, 17);
+        ctx.lineTo(6, 27);
+        ctx.closePath();
+        ctx.fill();
+
+        // Headlights (top)
         ctx.fillStyle = '#fef08a';
-        ctx.fillRect(4, tc.height - 6, 8, 4);
-        ctx.fillRect(tc.width - 12, tc.height - 6, 8, 4);
+        ctx.fillRect(4, tc.height - 5, 8, 4);
+        ctx.fillRect(tc.width - 12, tc.height - 5, 8, 4);
 
+        // Bright Red Tail Lights (bottom/front facing depending on direction)
         ctx.fillStyle = '#ef4444';
         ctx.fillRect(4, 2, 8, 4);
         ctx.fillRect(tc.width - 12, 2, 8, 4);
+
+        // Ambulance Flashing Siren if special vehicle
+        if (tc.type === 'truck') {
+          // Semi-trailer details
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(2, 20, tc.width - 4, tc.height - 24);
+        }
 
         ctx.restore();
       });
 
       // --- DRAW PLAYER CAR (WITH SPECIFIC MODEL & LIVERY) ---
-      ctx.save();
-      ctx.translate(p.x, p.y);
+      // 1. Projected Headlights onto the asphalt ahead
+      const lightGradLeft = ctx.createRadialGradient(p.x + 8, p.y, 4, p.x - 15, p.y - 130, 140);
+      lightGradLeft.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
+      lightGradLeft.addColorStop(0.5, 'rgba(254, 240, 138, 0.15)');
+      lightGradLeft.addColorStop(1, 'rgba(254, 240, 138, 0)');
 
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(3, 5, p.width, p.height);
+      ctx.fillStyle = lightGradLeft;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 6, p.y);
+      ctx.lineTo(p.x - 35, p.y - 130);
+      ctx.lineTo(p.x + 25, p.y - 130);
+      ctx.closePath();
+      ctx.fill();
+
+      const lightGradRight = ctx.createRadialGradient(p.x + p.width - 8, p.y, 4, p.x + p.width + 15, p.y - 130, 140);
+      lightGradRight.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
+      lightGradRight.addColorStop(0.5, 'rgba(254, 240, 138, 0.15)');
+      lightGradRight.addColorStop(1, 'rgba(254, 240, 138, 0)');
+
+      ctx.fillStyle = lightGradRight;
+      ctx.beginPath();
+      ctx.moveTo(p.x + p.width - 6, p.y);
+      ctx.lineTo(p.x + p.width - 25, p.y - 130);
+      ctx.lineTo(p.x + p.width + 35, p.y - 130);
+      ctx.closePath();
+      ctx.fill();
+
+      // 2. Red Tail Light Asphalt Glow behind car
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(p.x + p.width / 2, p.y + p.height + 10, p.width * 0.65, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Dynamic Steering Tilt & 3D Car Body
+      const steerTilt = keysRef.current['ArrowLeft'] || keysRef.current['KeyA']
+        ? -0.06
+        : keysRef.current['ArrowRight'] || keysRef.current['KeyD']
+        ? 0.06
+        : 0;
+
+      ctx.save();
+      ctx.translate(p.x + p.width / 2, p.y + p.height / 2);
+      ctx.rotate(steerTilt);
+      ctx.translate(-p.width / 2, -p.height / 2);
+
+      // Soft Ambient Shadow under car
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.roundRect(1, 4, p.width, p.height, 8);
+      ctx.fill();
 
       const vType = currentVehicle.type;
       const vColor = currentVehicle.color;
@@ -378,11 +553,17 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
       // Model: Cyberpunk Neon Underglow
       if (vType === 'cyberpunk') {
         ctx.shadowColor = '#d946ef';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 14;
       }
 
-      // Base Chassis
-      ctx.fillStyle = vColor;
+      // Base Chassis with 3D Metallic Gradient
+      const chassisGrad = ctx.createLinearGradient(0, 0, p.width, 0);
+      chassisGrad.addColorStop(0, vColor);
+      chassisGrad.addColorStop(0.3, '#ffffff44');
+      chassisGrad.addColorStop(0.7, vColor);
+      chassisGrad.addColorStop(1, '#00000044');
+
+      ctx.fillStyle = chassisGrad;
       ctx.beginPath();
       if (vType === 'f1') {
         // F1 Nose and Body
@@ -416,12 +597,18 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
         ctx.fillStyle = '#4c1d95';
         ctx.fillRect(-3, p.height - 26, 4, 26);
         ctx.fillRect(p.width - 1, p.height - 26, 4, 26);
-
-        // Twin red turbo flame
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(p.width / 2 - 6, p.height, 4, 5);
-        ctx.fillRect(p.width / 2 + 2, p.height, 4, 5);
       }
+
+      // Dual Exhaust Nitro Flames & Sparks
+      const flameLen = 6 + Math.random() * 8 + currentSpeedFactor * 1.1;
+      const flameGrad = ctx.createLinearGradient(0, p.height, 0, p.height + flameLen);
+      flameGrad.addColorStop(0, '#38bdf8');
+      flameGrad.addColorStop(0.4, '#f59e0b');
+      flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+      ctx.fillStyle = flameGrad;
+      ctx.fillRect(8, p.height, 5, flameLen);
+      ctx.fillRect(p.width - 13, p.height, 5, flameLen);
 
       // Model: Gold Supercar Sparkles
       if (vType === 'gold_super') {
@@ -451,10 +638,19 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
         ctx.fillRect(6, 6, p.width - 12, 18);
       }
 
-      // Windshield & Windows
+      // Windshield & Windows with Curved Aerodynamic Glare
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(6, 18, p.width - 12, 16);
       ctx.fillRect(6, p.height - 28, p.width - 12, 10);
+
+      // Sun reflection glare on windshield
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.beginPath();
+      ctx.moveTo(8, 20);
+      ctx.lineTo(p.width - 14, 20);
+      ctx.lineTo(8, 30);
+      ctx.closePath();
+      ctx.fill();
 
       // Model: Police Flashing Lights
       if (vType === 'police') {
@@ -475,17 +671,53 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
         ctx.fillText('TAXI', p.width / 2, 40);
       }
 
-      // Headlights (Front is top in traffic)
+      // Headlights (Front top)
       ctx.fillStyle = '#fef08a';
       ctx.fillRect(4, 2, 7, 3);
       ctx.fillRect(p.width - 11, 2, 7, 3);
 
-      // Tail lights
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(4, p.height - 4, 7, 3);
-      ctx.fillRect(p.width - 11, p.height - 4, 7, 3);
+      // Bright Tail lights (Rear bottom) & Dynamic Brake Glow
+      const isCarBraking = keysRef.current['ArrowDown'] || keysRef.current['KeyS'];
+      const isCarAccelerating = keysRef.current['ArrowUp'] || keysRef.current['KeyW'];
 
-      // Player Name
+      if (isCarBraking) {
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#ff2222';
+        ctx.fillRect(2, p.height - 5, 10, 5);
+        ctx.fillRect(p.width - 12, p.height - 5, 10, 5);
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(4, p.height - 4, 7, 3);
+        ctx.fillRect(p.width - 11, p.height - 4, 7, 3);
+      }
+
+      // Turbo Exhaust Flames when accelerating with W/Up
+      if (isCarAccelerating) {
+        const flameLen = 14 + Math.random() * 9;
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(8, p.height);
+        ctx.lineTo(12, p.height + flameLen);
+        ctx.lineTo(16, p.height);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(p.width - 16, p.height);
+        ctx.lineTo(p.width - 12, p.height + flameLen);
+        ctx.lineTo(p.width - 8, p.height);
+        ctx.closePath();
+        ctx.fill();
+
+        // Neon Nitro Blue Core
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(10, p.height, 4, flameLen * 0.6);
+        ctx.fillRect(p.width - 14, p.height, 4, flameLen * 0.6);
+      }
+
+      // Player Name Badge above car
       ctx.fillStyle = '#fef08a';
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
@@ -517,7 +749,7 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-full max-w-5xl mx-auto">
       {/* Top HUD */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -539,10 +771,10 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
 
         <div className="flex items-center gap-2">
           {/* Wallet */}
-          <div className="bg-amber-950/80 border border-amber-500/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-mono font-bold text-amber-300">
-            <span>🪙</span>
-            <span className="text-sm font-black text-amber-200">{(currentUser.coins ?? 150).toLocaleString()}</span>
-            <span className="text-[10px] text-amber-400 uppercase">Altın</span>
+          <div className="bg-sky-950/80 border border-sky-500/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-mono font-bold text-sky-300">
+            <span>🏎️</span>
+            <span className="text-sm font-black text-amber-200">{(currentUser.trafficCoins ?? 0).toLocaleString()}</span>
+            <span className="text-[10px] text-amber-400 uppercase">Otoban Altını</span>
           </div>
 
           <button
@@ -560,6 +792,16 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
             <Trophy className="w-4 h-4" />
             <span>Skorboard</span>
           </button>
+
+          {onFullscreenRequest && (
+            <button
+              onClick={onFullscreenRequest}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
+              title="Ekranı Büyüt (Tam Ekran)"
+            >
+              <span>🗖 Büyüt</span>
+            </button>
+          )}
 
           {!inMenu && (
             <button
@@ -633,9 +875,9 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-mono text-amber-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                <span>Cüzdan:</span>
-                <strong className="text-amber-200">{(currentUser.coins ?? 150).toLocaleString()} 🪙</strong>
+              <div className="flex items-center gap-2 text-xs font-mono text-sky-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                <span>Otoban Cüzdanı:</span>
+                <strong className="text-amber-200">{(currentUser.trafficCoins ?? 0).toLocaleString()} 🪙</strong>
               </div>
             </div>
 
@@ -680,10 +922,10 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                     <div>
                       <h2 className="text-xl font-black text-white flex items-center gap-2">
-                        <span>🏎️ TURBO OTOBAN YARIŞI</span>
+                        <span>🏎️ TURBO OTOBAN: ARABA YARIŞI</span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Yoldaki altın paraları toplayarak garajdan yeni arabalar ve kostüm boyaları satın alın! W tuşuna basmanıza gerek yok; araba km ilerledikçe yavaş yavaş ve kontrollü şekilde hızlanır.
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        <strong className="text-sky-400">W tuşuna basmaya gerek yoktur!</strong> Aracınız otomatik olarak akıcı hızda ilerler. Önünüzdeki yoğun arabaların arasından <strong className="text-amber-400">SADECE A ve D tuşlarıyla</strong> (veya sol/sağ oklarla) sıyrılın, çarpmadan makas atarak yüksek skor yapın ve yoldaki altınları toplayın!
                       </p>
                     </div>
 
@@ -726,8 +968,8 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                       Yolda topladığınız altınlarla yeni arabalar satın alın ve sürün!
                     </p>
                   </div>
-                  <span className="text-xs font-mono text-amber-300 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
-                    Bakiyeniz: <strong>{(currentUser.coins ?? 150).toLocaleString()} 🪙</strong>
+                  <span className="text-xs font-mono text-sky-300 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+                    Otoban Bakiyeniz: <strong>{(currentUser.trafficCoins ?? 0).toLocaleString()} 🪙</strong>
                   </span>
                 </div>
 
@@ -745,8 +987,15 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                             : 'border-slate-800 hover:border-slate-700'
                         }`}
                       >
+                        {v.imageUrl && (
+                          <div className="relative h-28 w-full rounded-xl overflow-hidden mb-3 border border-slate-800 shadow">
+                            <img src={v.imageUrl} alt={v.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                          </div>
+                        )}
+
                         <div className="flex items-start gap-3">
-                          <div className="w-14 h-14 rounded-xl bg-slate-800 text-3xl flex items-center justify-center border border-slate-700 shadow-inner">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 text-2xl flex items-center justify-center border border-slate-700 shadow-inner shrink-0">
                             {v.icon}
                           </div>
                           <div className="flex-1">
@@ -764,7 +1013,7 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
 
                         <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
                           <span className="text-xs font-mono font-bold text-amber-300">
-                            {v.price === 0 ? 'ÜCRETSİZ' : `${v.price} 🪙 Altın`}
+                            {v.price === 0 ? 'ÜCRETSİZ' : `${v.price} 🪙`}
                           </span>
 
                           <button
@@ -775,7 +1024,7 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                                 ? 'bg-slate-800 text-slate-500 cursor-default'
                                 : isUnlocked
                                 ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 font-black'
-                                : (currentUser.coins ?? 150) >= v.price
+                                : (currentUser.trafficCoins ?? 0) >= v.price
                                 ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black'
                                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                             }`}
@@ -825,6 +1074,12 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                         }`}
                       >
                         <div>
+                          {s.imageUrl && (
+                            <div className="relative h-20 w-full rounded-xl overflow-hidden mb-2 border border-slate-800 shadow">
+                              <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                            </div>
+                          )}
                           <div className="flex items-center justify-between">
                             <h4 className="text-sm font-black text-white">{s.name}</h4>
                             {isEquipped && (
@@ -849,7 +1104,7 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                                 ? 'bg-slate-800 text-slate-500 cursor-default'
                                 : isUnlocked
                                 ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 font-black'
-                                : (currentUser.coins ?? 150) >= s.price
+                                : (currentUser.trafficCoins ?? 0) >= s.price
                                 ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black'
                                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                             }`}
@@ -896,12 +1151,12 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
           </div>
         ) : (
           /* CANVAS GAMEPLAY VIEW */
-          <div className="relative w-full h-full flex flex-col items-center">
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
             <canvas
               ref={canvasRef}
               width={CANVAS_WIDTH}
               height={CANVAS_HEIGHT}
-              className="rounded-lg shadow-2xl"
+              className="w-full h-auto max-h-[84vh] aspect-[16/10] object-cover rounded-2xl shadow-2xl border border-slate-800 block"
             />
 
             {/* In-Game HUD Overlays */}
@@ -928,6 +1183,38 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
                   {combo}x Kombo!
                 </div>
               )}
+            </div>
+
+            {/* Bottom Touch / Responsive Steering Buttons */}
+            <div className="absolute bottom-4 inset-x-0 flex justify-between px-4 sm:px-8 pointer-events-none z-10">
+              <button
+                onMouseDown={() => { keysRef.current['KeyA'] = true; }}
+                onMouseUp={() => { keysRef.current['KeyA'] = false; }}
+                onTouchStart={() => { keysRef.current['KeyA'] = true; }}
+                onTouchEnd={() => { keysRef.current['KeyA'] = false; }}
+                className="pointer-events-auto w-20 sm:w-24 h-16 sm:h-18 rounded-2xl bg-slate-900/85 hover:bg-sky-600/80 active:bg-sky-500 border-2 border-sky-500/50 text-white font-black text-sm flex flex-col items-center justify-center backdrop-blur shadow-2xl transition active:scale-95 select-none cursor-pointer"
+              >
+                <span className="text-xl sm:text-2xl">◀</span>
+                <span className="text-[10px] text-sky-300 font-bold uppercase">SOL (A)</span>
+              </button>
+
+              <div className="bg-slate-950/85 backdrop-blur px-3 py-1.5 rounded-full border border-slate-800 text-[11px] text-slate-300 font-mono flex items-center gap-1.5 self-center shadow-lg">
+                <span>🚗</span>
+                <span className="text-sky-400 font-black">A / D</span>
+                <span className="hidden sm:inline">ile arabalara çarpmadan makas at</span>
+                <span className="sm:hidden">ile makas at</span>
+              </div>
+
+              <button
+                onMouseDown={() => { keysRef.current['KeyD'] = true; }}
+                onMouseUp={() => { keysRef.current['KeyD'] = false; }}
+                onTouchStart={() => { keysRef.current['KeyD'] = true; }}
+                onTouchEnd={() => { keysRef.current['KeyD'] = false; }}
+                className="pointer-events-auto w-20 sm:w-24 h-16 sm:h-18 rounded-2xl bg-slate-900/85 hover:bg-sky-600/80 active:bg-sky-500 border-2 border-sky-500/50 text-white font-black text-sm flex flex-col items-center justify-center backdrop-blur shadow-2xl transition active:scale-95 select-none cursor-pointer"
+              >
+                <span className="text-xl sm:text-2xl">▶</span>
+                <span className="text-[10px] text-sky-300 font-bold uppercase">SAĞ (D)</span>
+              </button>
             </div>
 
             {/* GAME OVER MODAL */}

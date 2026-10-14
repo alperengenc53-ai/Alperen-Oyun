@@ -1,16 +1,18 @@
 import React from 'react';
 import { GameId, UserProfile } from '../types/game';
 import { GAMES_DATA } from '../data/gamesData';
-import { PubgGame } from './games/PubgGame';
-import { PaperMinecraftGame } from './games/PaperMinecraftGame';
+import { EightBallPoolGame } from './games/EightBallPoolGame';
 import { TrafficGame } from './games/TrafficGame';
 import { SnakeIoGame } from './games/SnakeIoGame';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { Cyber3DGame } from './games/Cyber3DGame';
+import { PresenceData } from '../utils/onlinePresence';
+import { ArrowLeft } from 'lucide-react';
 import { playSound } from '../utils/audio';
 
 interface StandaloneGameViewProps {
   gameId: GameId;
   currentUser: UserProfile;
+  presenceData?: PresenceData;
   onOpenAccountModal: () => void;
   onProfileUpdated: (updated: UserProfile) => void;
   onBackToPortal: () => void;
@@ -19,11 +21,13 @@ interface StandaloneGameViewProps {
 export const StandaloneGameView: React.FC<StandaloneGameViewProps> = ({
   gameId,
   currentUser,
+  presenceData,
   onOpenAccountModal,
   onProfileUpdated,
   onBackToPortal,
 }) => {
-  const game = GAMES_DATA[gameId];
+  const game = GAMES_DATA[gameId] || GAMES_DATA['snake'];
+  const onlineCount = presenceData?.counts?.[gameId] ?? 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -51,24 +55,23 @@ export const StandaloneGameView: React.FC<StandaloneGameViewProps> = ({
           </div>
         </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold">
-              Fan Web Oyunu
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1 rounded-lg border border-emerald-500/30 font-mono text-xs">
+            <span className={`w-2 h-2 rounded-full ${onlineCount > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
+            <span className={onlineCount > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+              Online: {onlineCount}
             </span>
           </div>
+          <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold">
+            Fan Web Oyunu
+          </span>
+        </div>
       </header>
 
       {/* Main Game Screen */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
-        {gameId === 'pubg' && (
-          <PubgGame
-            currentUser={currentUser}
-            onOpenAccountModal={onOpenAccountModal}
-            onProfileUpdated={onProfileUpdated}
-          />
-        )}
-        {gameId === 'minecraft' && (
-          <PaperMinecraftGame
+        {gameId === 'pool' && (
+          <EightBallPoolGame
             currentUser={currentUser}
             onOpenAccountModal={onOpenAccountModal}
             onProfileUpdated={onProfileUpdated}
@@ -83,6 +86,13 @@ export const StandaloneGameView: React.FC<StandaloneGameViewProps> = ({
         )}
         {gameId === 'snake' && (
           <SnakeIoGame
+            currentUser={currentUser}
+            onOpenAccountModal={onOpenAccountModal}
+            onProfileUpdated={onProfileUpdated}
+          />
+        )}
+        {gameId === 'cyber3d' && (
+          <Cyber3DGame
             currentUser={currentUser}
             onOpenAccountModal={onOpenAccountModal}
             onProfileUpdated={onProfileUpdated}

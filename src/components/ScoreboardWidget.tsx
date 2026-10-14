@@ -5,7 +5,7 @@ import { Trophy, RefreshCw, Users } from 'lucide-react';
 import { playSound } from '../utils/audio';
 
 interface ScoreboardWidgetProps {
-  game: 'pubg' | 'traffic' | 'snake' | 'minecraft';
+  game: 'traffic' | 'snake' | 'pool' | 'cyber3d';
   currentUser?: UserProfile;
   currentUserId?: string;
   title?: string;
@@ -38,13 +38,13 @@ export const ScoreboardWidget: React.FC<ScoreboardWidgetProps> = ({
   }, [game, currentUser]);
 
   const gameTitles: Record<string, { label: string; icon: string; color: string }> = {
-    pubg: { label: 'PUBG REKABETÇİ CANLI SKORBOARD', icon: '🎯', color: 'text-amber-400' },
-    minecraft: { label: 'PAPER MINECRAFT CANLI SKORBOARD', icon: '⛏️', color: 'text-emerald-400' },
+    pool: { label: '8 BALL POOL BİLARDO LİDERLERİ', icon: '🎱', color: 'text-emerald-400' },
     traffic: { label: 'TURBO OTOBAN CANLI SKORBOARD', icon: '🏎️', color: 'text-sky-400' },
     snake: { label: 'SNAKE.IO ARENA CANLI SKORBOARD', icon: '🐍', color: 'text-emerald-400' },
+    cyber3d: { label: 'CYBER RUNNER 3D LİDERLERİ', icon: '🚀', color: 'text-cyan-400' },
   };
 
-  const meta = gameTitles[game] || gameTitles.pubg;
+  const meta = gameTitles[game] || gameTitles.pool;
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
@@ -57,7 +57,7 @@ export const ScoreboardWidget: React.FC<ScoreboardWidgetProps> = ({
               {title || meta.label}
             </h3>
             <p className="text-[10px] text-slate-400 font-mono">
-              Siteye Kayıtlı Gerçek Oyuncuların Skorları
+              Siteye Aktif Giren Kullanıcıların Skorları
             </p>
           </div>
         </div>
