@@ -104,7 +104,17 @@ export const getActiveUser = (): UserProfile | null => {
     return players[0];
   }
 
-  return null;
+  // Auto-create unique guest profile for this device session so multi-device presence works correctly
+  const guestId = 'guest_' + Math.random().toString(36).substring(2, 9) + Math.random().toString(36).substring(2, 9);
+  const guestUser = ensureProfileDefaults({
+    id: guestId,
+    username: 'Misafir_' + Math.floor(Math.random() * 900 + 100),
+    avatar: '👑',
+    tag: '[TR]',
+  });
+  saveAllRegisteredPlayers([guestUser, ...players]);
+  setActiveUser(guestId);
+  return guestUser;
 };
 
 export const setActiveUser = (userId: string | null): void => {

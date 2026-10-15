@@ -23,8 +23,8 @@ export const GamePortalHome: React.FC<GamePortalHomeProps> = ({
   onOpenAccountModal,
 }) => {
   const games = Object.values(GAMES_DATA);
-  const [selectedScoreboardGame, setSelectedScoreboardGame] = useState<'traffic' | 'snake' | 'pool' | 'cyber3d'>('pool');
-  const counts = presenceData?.counts || { snake: 0, pool: 0, traffic: 0, cyber3d: 0, lobby: 1 };
+  const [selectedScoreboardGame, setSelectedScoreboardGame] = useState<'traffic' | 'snake' | 'pool'>('pool');
+  const counts = presenceData?.counts || { snake: 0, pool: 0, traffic: 0, lobby: 1 };
   const totalOnline = presenceData?.total ?? 1;
 
   const handleOpenAdSite = () => {
@@ -58,10 +58,10 @@ export const GamePortalHome: React.FC<GamePortalHomeProps> = ({
             CANLI ÇEVRİMİÇİ OYUNCULAR ({totalOnline} KİŞİ AKTİF)
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-            İsmini Yaz, Canlı Maça Gir: <span className="text-emerald-400">8 Ball Pool</span>, <span className="text-cyan-400">Cyber Horizon 3D</span>, <span className="text-emerald-400">Snake.io</span> & <span className="text-sky-400">Turbo Otoban</span>
+            İsmini Yaz, Canlı Maça Gir: <span className="text-emerald-400">8 Ball Pool</span>, <span className="text-emerald-400">Snake.io</span> & <span className="text-sky-400">Turbo Otoban</span>
           </h1>
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-            Sitedeki çevrimiçi oyuncularla 1v1 Bilardo maçı atabilir, Three.js ile geliştirilen yepyeni 3D Cyber Horizon'da yarışabilir, Snake.io'da dengeli hızda skor kasıp kostüm açabilir, Otobanda hızlanıp yeni arabalar satın alabilirsiniz!
+            Sitedeki çevrimiçi oyuncularla 1v1 Bilardo maçı atabilir, Snake.io'da dengeli hızda skor kasıp kostüm açabilir, Otobanda hızlanıp yeni arabalar satın alabilirsiniz!
           </p>
 
           {/* User Quick Info & Live Server Counters */}
@@ -81,8 +81,6 @@ export const GamePortalHome: React.FC<GamePortalHomeProps> = ({
               <span className="text-emerald-300">🐍 Snake: {counts.snake}</span>
               <span>•</span>
               <span className="text-sky-300">🏎️ Otoban: {counts.traffic}</span>
-              <span>•</span>
-              <span className="text-cyan-300">🚀 3D Cyber: {counts.cyber3d || 0}</span>
             </div>
           </div>
         </div>
@@ -243,16 +241,6 @@ export const GamePortalHome: React.FC<GamePortalHomeProps> = ({
               }`}
             >
               🏎️ Turbo Araba
-            </button>
-            <button
-              onClick={() => setSelectedScoreboardGame('cyber3d')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer ${
-                selectedScoreboardGame === 'cyber3d'
-                  ? 'bg-cyan-500 text-slate-950 font-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              🚀 Cyber 3D
             </button>
           </div>
         </div>

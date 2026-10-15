@@ -278,7 +278,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         p.angle += diff * 0.075; // Smooth, graceful, authentic snake steering
 
         p.isBoosting = (isMouseDownRef.current || keysRef.current['Space']) && p.score > 20;
-        const speed = p.isBoosting ? 3.2 : 2.15;
+        const speed = p.isBoosting ? 3.8 : 2.65;
 
         if (p.isBoosting && Math.random() < 0.25) {
           p.score = Math.max(15, p.score - 1);
@@ -328,7 +328,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         p.body.unshift(newHead);
 
         // Balanced, authentic growth: snake grows steadily without exploding too quickly!
-        const targetLength = Math.floor(18 + p.score / 5.5);
+        const targetLength = Math.floor(18 + p.score / 3.0);
         while (p.body.length > targetLength) {
           p.body.pop();
         }

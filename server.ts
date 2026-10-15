@@ -115,7 +115,6 @@ app.get('/api/presence', (req, res) => {
     snake: 0,
     pool: 0,
     traffic: 0,
-    cyber3d: 0,
     lobby: 0,
   };
 

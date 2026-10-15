@@ -67,7 +67,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   const games = Object.values(GAMES_DATA);
   const onlineUsers = presenceData?.users || [];
-  const counts = presenceData?.counts || { snake: 0, pool: 0, traffic: 0, cyber3d: 0, lobby: 1 };
+  const counts = presenceData?.counts || { snake: 0, pool: 0, traffic: 0, lobby: 1 };
 
   return (
     <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col gap-4">
