@@ -103,23 +103,10 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
 
   const spawnFood = (count: number) => {
     for (let i = 0; i < count; i++) {
-      let x = 0;
-      let y = 0;
-      let val = 1; // 1 point per regular orb for steady, natural growth
-      let r = 4.0 + Math.random() * 2.5;
-
-      // 80% of food spawns in the central feast arena ("yemleri ortaya al")
-      if (Math.random() < 0.8) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = Math.random() * 460;
-        x = ARENA_WIDTH / 2 + Math.cos(angle) * dist;
-        y = ARENA_HEIGHT / 2 + Math.sin(angle) * dist;
-        val = 2; // Central feast orbs give 2 points
-        r = 5.5 + Math.random() * 3.5;
-      } else {
-        x = Math.random() * (ARENA_WIDTH - 80) + 40;
-        y = Math.random() * (ARENA_HEIGHT - 80) + 40;
-      }
+      const x = Math.random() * (ARENA_WIDTH - 100) + 50;
+      const y = Math.random() * (ARENA_HEIGHT - 100) + 50;
+      const val = 1;
+      const r = 4.5 + Math.random() * 2.5;
 
       foodRef.current.push({
         x,

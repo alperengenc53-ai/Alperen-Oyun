@@ -194,12 +194,12 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
       const maxX = ROAD_LEFT + NUM_LANES * LANE_WIDTH - p.width - 6;
       p.x = Math.max(minX, Math.min(maxX, p.x));
 
-      // Automatic Forward Cruising Speed (No W needed!)
+      // Automatic Forward Cruising Speed (Starts slow, accelerates as score increases, Traffic Racer style)
       const kmTraveled = currentDist / 1000;
       const isBraking = keysRef.current['ArrowDown'] || keysRef.current['KeyS'];
-      let currentSpeedFactor = 8.8 + Math.min(4.0, kmTraveled * 0.4);
+      let currentSpeedFactor = 4.5 + Math.min(12.0, (currentScore / 400) * 1.6 + kmTraveled * 0.8);
       if (isBraking) {
-        currentSpeedFactor = Math.max(5.0, currentSpeedFactor * 0.68); // Optional slight brake tap
+        currentSpeedFactor = Math.max(3.0, currentSpeedFactor * 0.65);
       }
 
       const kmh = Math.round(currentSpeedFactor * 13);
@@ -213,10 +213,11 @@ export const TrafficGame: React.FC<TrafficGameProps> = ({
       setDistance(Math.floor(currentDist));
       setScore(currentScore);
 
-      // Spawn traffic cars CONTINUOUSLY ahead on road so there are always cars to dodge!
+      // Spawn traffic cars continuously ahead, multiplying as score increases (Traffic Racer style)
       const now = Date.now();
-      const spawnInterval = Math.max(450, 750 - kmTraveled * 60);
-      if (now - lastSpawn > spawnInterval && trafficCarsRef.current.length < 7) {
+      const spawnInterval = Math.max(280, 850 - currentScore * 0.45);
+      const maxCars = Math.min(14, 5 + Math.floor(currentScore / 300));
+      if (now - lastSpawn > spawnInterval && trafficCarsRef.current.length < maxCars) {
         lastSpawn = now;
 
         const lane = Math.floor(Math.random() * NUM_LANES);

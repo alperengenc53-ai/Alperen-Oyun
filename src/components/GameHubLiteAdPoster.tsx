@@ -11,7 +11,7 @@ export const GameHubLiteAdPoster: React.FC<GameHubLiteAdPosterProps> = ({
   className = '',
   variant = 'sidebar',
 }) => {
-  const AD_URL = 'https://oyun-self.vercel.app/';
+  const AD_URL = 'https://erenpehlivanoyun.vercel.app/';
 
   const handleOpenSite = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -27,7 +27,7 @@ export const GameHubLiteAdPoster: React.FC<GameHubLiteAdPosterProps> = ({
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && handleOpenSite(e as any)}
         className={`relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 border-2 border-indigo-500/50 hover:border-amber-400 p-5 shadow-2xl transition duration-200 cursor-pointer group flex flex-col lg:flex-row items-center justify-between gap-5 ${className}`}
-        title="GameHub Lite web oyun platformunu yeni sekmede aç (https://oyun-self.vercel.app/)"
+        title="GameHub Lite web oyun platformunu yeni sekmede aç (https://erenpehlivanoyun.vercel.app/)"
       >
         {/* Glowing Ambient Light */}
         <div className="absolute -top-16 -left-16 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition duration-500" />
@@ -88,7 +88,7 @@ export const GameHubLiteAdPoster: React.FC<GameHubLiteAdPosterProps> = ({
             <span>Siteye Git</span>
           </button>
           <span className="text-[10px] font-mono text-indigo-300">
-            https://oyun-self.vercel.app/
+            https://erenpehlivanoyun.vercel.app/
           </span>
         </div>
       </div>
@@ -103,7 +103,7 @@ export const GameHubLiteAdPoster: React.FC<GameHubLiteAdPosterProps> = ({
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleOpenSite(e as any)}
       className={`relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 border-2 border-indigo-500/50 hover:border-amber-400 p-4 shadow-2xl transition duration-200 cursor-pointer group flex flex-col justify-between ${className}`}
-      title="GameHub Lite web oyun platformunu yeni sekmede aç (https://oyun-self.vercel.app/)"
+      title="GameHub Lite web oyun platformunu yeni sekmede aç (https://erenpehlivanoyun.vercel.app/)"
     >
       {/* Glow */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/15 transition duration-500" />
@@ -131,7 +131,7 @@ export const GameHubLiteAdPoster: React.FC<GameHubLiteAdPosterProps> = ({
               <span>GameHub Lite</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400" />
             </h4>
-            <span className="text-[10px] font-mono text-indigo-300">oyun-self.vercel.app</span>
+            <span className="text-[10px] font-mono text-indigo-300">erenpehlivanoyun.vercel.app</span>
           </div>
         </div>
         <p className="text-[11px] text-slate-300 leading-relaxed pt-1">

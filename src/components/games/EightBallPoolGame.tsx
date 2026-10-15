@@ -945,15 +945,17 @@ export const EightBallPoolGame: React.FC<EightBallPoolGameProps> = ({
             b2.x += nx * overlap;
             b2.y += ny * overlap;
 
-            // Elastic collision velocity response
+            // Elastic collision velocity response with proportional impulse dampening for gentle shots
             const kx = b1.vx - b2.vx;
             const ky = b1.vy - b2.vy;
-            const p = (2 * (nx * kx + ny * ky)) / 2; // equal billiard masses
+            const impactVel = Math.hypot(kx, ky);
+            const dampening = Math.min(0.97, 0.65 + impactVel * 0.04);
+            const p = (2 * (nx * kx + ny * ky)) / 2;
 
-            b1.vx -= p * nx * 0.97;
-            b1.vy -= p * ny * 0.97;
-            b2.vx += p * nx * 0.97;
-            b2.vy += p * ny * 0.97;
+            b1.vx -= p * nx * dampening;
+            b1.vy -= p * ny * dampening;
+            b2.vx += p * nx * dampening;
+            b2.vy += p * ny * dampening;
 
             // Cue ball spin reaction upon contact (draw / backspin & follow / topspin)
             if (b1.id === 0 || b2.id === 0) {
@@ -1400,7 +1402,7 @@ export const EightBallPoolGame: React.FC<EightBallPoolGameProps> = ({
 
     // Convert shotPowerPercent (0 - 100) to precise physical velocity
     const speedRatio = shotPowerRef.current / 100;
-    const power = (4 + speedRatio * 20) * currentCue.powerMultiplier;
+    const power = (1.2 + speedRatio * 16) * currentCue.powerMultiplier;
     const angle = cueAimAngleRef.current;
 
     // Apply Real Cue Ball Falso (Spin)

@@ -111,10 +111,11 @@ app.post('/api/presence/leave', (req, res) => {
 app.get('/api/presence', (req, res) => {
   const now = Date.now();
   const activeList: OnlineUser[] = [];
-  const counts = {
+  const counts: { [key: string]: number } = {
     snake: 0,
     pool: 0,
     traffic: 0,
+    cyber3d: 0,
     lobby: 0,
   };
 
@@ -134,6 +135,24 @@ app.get('/api/presence', (req, res) => {
     counts,
     users: activeList,
   });
+});
+
+// --- PLAYERS SYNC API ---
+app.get('/api/players', (req, res) => {
+  const players = Array.from(sharedPlayers.values());
+  return res.json({ players });
+});
+
+app.post('/api/players', (req, res) => {
+  const user = req.body;
+  if (user && user.id) {
+    sharedPlayers.set(user.id, user);
+    if (user.username) {
+      registeredAccounts.set(user.username.toLowerCase(), user);
+    }
+    return res.json({ success: true });
+  }
+  return res.status(400).json({ error: 'Invalid player data' });
 });
 
 // --- 8 BALL POOL MATCHMAKING & ROOMS API ---
