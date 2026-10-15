@@ -258,7 +258,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
               return (
                 <div
-                  key={u.id}
+                  key={`${u.id}-${u.username}`}
                   className={`p-2 rounded-lg flex items-center justify-between transition ${
                     isMe
                       ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold'

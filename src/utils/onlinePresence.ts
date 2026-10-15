@@ -111,15 +111,12 @@ const sendPing = async () => {
   if (!activeUser) return;
   try {
     const { db } = await import('../firebase');
-    const { doc, updateDoc } = await import('firebase/firestore');
-    await updateDoc(doc(db, 'users', activeUser.id), {
+    const { doc, setDoc } = await import('firebase/firestore');
+    await setDoc(doc(db, 'users', activeUser.id), {
       lastSeen: Date.now(),
       status: 'online',
       currentGame: currentGame
-    });
-    // fetchPresence(); // Replaced by Firestore listener
-    // checkChallenges();
-    // checkSquadInvites();
+    }, { merge: true });
   } catch (e) {
     console.error('Error sending ping to Firestore:', e);
   }
@@ -129,11 +126,10 @@ export const sendLeave = async () => {
   if (!activeUser) return;
   try {
     const { db } = await import('../firebase');
-    const { doc, updateDoc } = await import('firebase/firestore');
-    await updateDoc(doc(db, 'users', activeUser.id), {
+    await setDoc(doc(db, 'users', activeUser.id), {
       status: 'offline',
       lastSeen: Date.now()
-    });
+    }, { merge: true });
   } catch (e) {
     console.error('Error setting offline in Firestore:', e);
   }

@@ -114,20 +114,17 @@ export default function App() {
 
   // Start Presence service and subscribe to real-time updates
   useEffect(() => {
-    // Firebase connection test
-    import('./firebase').then(({ db }) => {
-      import('firebase/firestore').then(({ doc, getDocFromServer }) => {
-        getDocFromServer(doc(db, 'test', 'connection')).catch(console.error);
-      });
-    });
-
+    // We are temporarily bypassing Firebase Auth (signInAnonymously) 
+    // because the user cannot access the Firebase Console to enable it.
+    // Using effectiveUser ID (which is persistent locally) for Firestore access.
+    
     startPresenceService(effectiveUser, activeGame || 'lobby');
 
     const unsub = subscribePresence((data) => {
       setPresenceData(data);
     });
     return unsub;
-  }, [effectiveUser.id]);
+  }, [effectiveUser.id, activeGame]);
 
   // Keep presence updated when switching games
   useEffect(() => {
