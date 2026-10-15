@@ -1,4 +1,4 @@
-export type GameId = 'pool' | 'traffic' | 'snake' | 'cyber3d';
+export type GameId = 'pool' | 'traffic' | 'snake';
 
 export interface TrafficVehicle {
   id: string;

@@ -106,23 +106,18 @@ export const GamePortalHome: React.FC<GamePortalHomeProps> = ({
           {games.map((g) => {
             const isPool = g.id === 'pool';
             const isTraffic = g.id === 'traffic';
-            const isCyber = g.id === 'cyber3d';
             const onlineInThisGame = counts[g.id] ?? 0;
 
             const accentColor = isPool
               ? 'border-emerald-500/40 hover:border-emerald-400 shadow-emerald-500/10'
               : isTraffic
               ? 'border-sky-500/40 hover:border-sky-400 shadow-sky-500/10'
-              : isCyber
-              ? 'border-cyan-500/40 hover:border-cyan-400 shadow-cyan-500/10'
               : 'border-emerald-500/40 hover:border-emerald-400 shadow-emerald-500/10';
 
             const btnBg = isPool
               ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black'
               : isTraffic
               ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 font-black'
-              : isCyber
-              ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black'
               : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black';
 
             const myScore =
@@ -130,8 +125,6 @@ export const GamePortalHome: React.FC<GamePortalHomeProps> = ({
                 ? currentUser.trafficHighscore
                 : g.id === 'snake'
                 ? currentUser.snakeHighscore
-                : g.id === 'cyber3d'
-                ? (currentUser.cyberHighscore || 0)
                 : (currentUser as any).poolHighscore || currentUser.totalScore || 0;
 
             return (

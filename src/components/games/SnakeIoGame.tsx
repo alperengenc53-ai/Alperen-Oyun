@@ -84,7 +84,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
     angle: 0,
     targetAngle: 0,
     length: 22,
-    speed: 1.28,
+    speed: 2.15,
     isBoosting: false,
     isDead: false,
     score: 30,
@@ -278,7 +278,7 @@ export const SnakeIoGame: React.FC<SnakeIoGameProps> = ({
         p.angle += diff * 0.075; // Smooth, graceful, authentic snake steering
 
         p.isBoosting = (isMouseDownRef.current || keysRef.current['Space']) && p.score > 20;
-        const speed = p.isBoosting ? 2.05 : 1.28; // Calibrated, calm, controllable slither speed
+        const speed = p.isBoosting ? 3.2 : 2.15;
 
         if (p.isBoosting && Math.random() < 0.25) {
           p.score = Math.max(15, p.score - 1);

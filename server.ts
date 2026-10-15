@@ -57,11 +57,11 @@ const challenges = new Map<string, Challenge>();
 const sharedPlayers = new Map<string, any>();
 const sharedChat: any[] = [];
 
-// Cleanup stale presence every 1.5 seconds (disconnect after 4.5s without ping)
+// Cleanup stale presence every 5 seconds (disconnect after 30s without ping)
 setInterval(() => {
   const now = Date.now();
   for (const [id, user] of onlineUsers.entries()) {
-    if (now - user.lastPing > 4500) {
+    if (now - user.lastPing > 30000) {
       onlineUsers.delete(id);
     }
   }
@@ -120,7 +120,7 @@ app.get('/api/presence', (req, res) => {
   };
 
   for (const user of onlineUsers.values()) {
-    if (now - user.lastPing <= 6000) {
+    if (now - user.lastPing <= 30000) {
       activeList.push(user);
       if (user.game in counts) {
         counts[user.game]++;

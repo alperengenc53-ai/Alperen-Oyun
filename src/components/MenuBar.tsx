@@ -89,22 +89,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             <span>Snake.io (Yılan)</span>
           </button>
 
-          {/* Cyber Horizon 3D */}
-          <button
-            onClick={() => {
-              onSelectGame('cyber3d');
-              setActiveTab('cyber3d');
-            }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              activeGame === 'cyber3d'
-                ? 'bg-cyan-600 text-white shadow font-black'
-                : 'hover:bg-slate-300/80 text-slate-700'
-            }`}
-          >
-            <span className="text-sm">🚀</span>
-            <span>Cyber Horizon 3D</span>
-            <span className="text-[10px] bg-cyan-500/20 text-cyan-800 px-1 rounded font-mono font-bold">3D YENİ</span>
-          </button>
+
 
           <div className="h-4 w-px bg-slate-300 mx-1" />
 

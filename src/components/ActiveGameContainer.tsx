@@ -4,7 +4,7 @@ import { GAMES_DATA } from '../data/gamesData';
 import { EightBallPoolGame } from './games/EightBallPoolGame';
 import { TrafficGame } from './games/TrafficGame';
 import { SnakeIoGame } from './games/SnakeIoGame';
-import { Cyber3DGame } from './games/Cyber3DGame';
+
 import { ScoreboardWidget } from './ScoreboardWidget';
 import { PresenceData } from '../utils/onlinePresence';
 import { ExternalLink, ArrowLeft, Keyboard, Sparkles, Trophy, User, Minimize2, Maximize2 } from 'lucide-react';
@@ -185,14 +185,7 @@ export const ActiveGameContainer: React.FC<ActiveGameContainerProps> = ({
               onFullscreenRequest={toggleFullscreen}
             />
           )}
-          {gameId === 'cyber3d' && (
-            <Cyber3DGame
-              currentUser={currentUser}
-              onOpenAccountModal={onOpenAccountModal}
-              onProfileUpdated={onProfileUpdated}
-              onFullscreenRequest={toggleFullscreen}
-            />
-          )}
+
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl w-full">

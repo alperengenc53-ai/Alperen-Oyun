@@ -4,7 +4,7 @@ import { GAMES_DATA } from '../data/gamesData';
 import { EightBallPoolGame } from './games/EightBallPoolGame';
 import { TrafficGame } from './games/TrafficGame';
 import { SnakeIoGame } from './games/SnakeIoGame';
-import { Cyber3DGame } from './games/Cyber3DGame';
+
 import { PresenceData } from '../utils/onlinePresence';
 import { ArrowLeft } from 'lucide-react';
 import { playSound } from '../utils/audio';
@@ -91,13 +91,7 @@ export const StandaloneGameView: React.FC<StandaloneGameViewProps> = ({
             onProfileUpdated={onProfileUpdated}
           />
         )}
-        {gameId === 'cyber3d' && (
-          <Cyber3DGame
-            currentUser={currentUser}
-            onOpenAccountModal={onOpenAccountModal}
-            onProfileUpdated={onProfileUpdated}
-          />
-        )}
+
       </main>
     </div>
   );
