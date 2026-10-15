@@ -88,13 +88,15 @@ export const updatePresenceUser = (user: UserProfile) => {
 
 export const syncPlayerToServer = async (user: UserProfile) => {
   try {
-    await fetch('/api/players', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(user),
-    });
+    const { db } = await import('../firebase');
+    const { doc, setDoc } = await import('firebase/firestore');
+    await setDoc(doc(db, 'users', user.id), {
+      ...user,
+      lastSeen: Date.now(),
+      status: 'online'
+    }, { merge: true });
   } catch (e) {
-    // ignore
+    console.error('Error syncing player to Firestore:', e);
   }
 };
 
@@ -108,55 +110,74 @@ export const setPresenceGame = (game: 'snake' | 'pool' | 'traffic' | 'cyber3d' |
 const sendPing = async () => {
   if (!activeUser) return;
   try {
-    await fetch('/api/presence', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: activeUser.id,
-        username: activeUser.username,
-        tag: activeUser.tag,
-        avatar: activeUser.avatar,
-        game: currentGame,
-      }),
+    const { db } = await import('../firebase');
+    const { doc, updateDoc } = await import('firebase/firestore');
+    await updateDoc(doc(db, 'users', activeUser.id), {
+      lastSeen: Date.now(),
+      status: 'online',
+      currentGame: currentGame
     });
-    fetchPresence();
-    checkChallenges();
-    checkSquadInvites();
+    // fetchPresence(); // Replaced by Firestore listener
+    // checkChallenges();
+    // checkSquadInvites();
   } catch (e) {
-    // offline or server unavailable fallback
+    console.error('Error sending ping to Firestore:', e);
   }
 };
 
-export const sendLeave = () => {
+export const sendLeave = async () => {
   if (!activeUser) return;
   try {
-    const payload = JSON.stringify({ id: activeUser.id });
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/presence/leave', payload);
-    } else {
-      fetch('/api/presence/leave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      });
-    }
+    const { db } = await import('../firebase');
+    const { doc, updateDoc } = await import('firebase/firestore');
+    await updateDoc(doc(db, 'users', activeUser.id), {
+      status: 'offline',
+      lastSeen: Date.now()
+    });
   } catch (e) {
-    // ignore
+    console.error('Error setting offline in Firestore:', e);
   }
 };
 
+let unsubscribePresence: (() => void) | null = null;
+
 export const fetchPresence = async () => {
-  try {
-    const res = await fetch('/api/presence');
-    if (res.ok) {
-      const data: PresenceData = await res.json();
-      cachedPresence = data;
-      presenceListeners.forEach((fn) => fn(data));
-    }
-  } catch (e) {
-    // ignore
-  }
+  if (unsubscribePresence) return;
+
+  const { db } = await import('../firebase');
+  const { collection, onSnapshot, query, where } = await import('firebase/firestore');
+  
+  const q = query(collection(db, 'users'), where('status', '==', 'online'));
+  
+  unsubscribePresence = onSnapshot(q, (snapshot) => {
+    const users: OnlineUserInfo[] = [];
+    const counts: PresenceData['counts'] = {
+      snake: 0,
+      pool: 0,
+      traffic: 0,
+      cyber3d: 0,
+      lobby: 0
+    };
+
+    snapshot.forEach((doc) => {
+      const data = doc.data() as OnlineUserInfo;
+      users.push(data);
+      if (data.game in counts) {
+        counts[data.game]++;
+      } else {
+        counts.lobby++;
+      }
+    });
+
+    const data: PresenceData = {
+      total: users.length,
+      counts,
+      users
+    };
+    
+    cachedPresence = data;
+    presenceListeners.forEach((fn) => fn(data));
+  });
 };
 
 export const subscribePresence = (callback: (data: PresenceData) => void) => {

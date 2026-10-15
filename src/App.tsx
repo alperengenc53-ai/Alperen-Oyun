@@ -114,7 +114,15 @@ export default function App() {
 
   // Start Presence service and subscribe to real-time updates
   useEffect(() => {
+    // Firebase connection test
+    import('./firebase').then(({ db }) => {
+      import('firebase/firestore').then(({ doc, getDocFromServer }) => {
+        getDocFromServer(doc(db, 'test', 'connection')).catch(console.error);
+      });
+    });
+
     startPresenceService(effectiveUser, activeGame || 'lobby');
+
     const unsub = subscribePresence((data) => {
       setPresenceData(data);
     });

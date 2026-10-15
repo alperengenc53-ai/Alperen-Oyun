@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "status": { "type": "string", "enum": ["online", "offline"] },
+        "lastSeen": { "type": "number" },
+        "currentGame": { "type": "string" }
+      },
+      "required": ["id", "username"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "Game room data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "hostId": { "type": "string" }
+      },
+      "required": ["id", "name", "hostId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User online presence"
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Game rooms"
+    }
+  }
+}
